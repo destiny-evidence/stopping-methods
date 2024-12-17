@@ -17,15 +17,33 @@ Further, developers of stopping criteria should adapt this format.
 In the future, we hope to share evaluations for all datasets and all stopping methods on a website.
 
 ## Datasets
-In this 
+|    | Reference | Research area | Number of records | Number includes | Data URL                                                                                                     | Publicly available | 
+|---:|:---------:|--------------:|------------------:|----------------:|--------------------------------------------------------------------------------------------------------------|--------------------|
 
 ## Evaluation framework
-The procedure of an evaluation run for a stopping method is as follows:
-* For each iteration of the cross-validation outer loop (3 splits)
-  * Train initial classifier from random set of documents
-  * Hyperparameter optimisation ?
-  * Rank remaining records
-  * Compute stopping criterion
+Degrees of freedom to validate
+* ML Model characteristics
+* Size of initial random sample
+* Criterion-specific recall/confidence targets
+* Training regime
+* Ranking model hyperparameter tuning
+
+```
+for each repitition
+  for each ML model type
+    for each initial random sample size
+      for each dataset
+        for each batch in dataset ¹ ²
+          train model of previsously seen data
+          rank unseen data
+          for each stopping criterion
+            for each stopping criterion sub-config (e.g. recall target)
+              computer stopping value
+        compute performance metrics (precision, recall, includes missed, work saved, ...)
+
+¹ until all criteria stop?
+² adaptive batch size, e.g. growing with the number of seen records or number of includes per batch
+```
 
 ## Project structure
 * Datasets: Scripts to retrieve datasets for evaluation

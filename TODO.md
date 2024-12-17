@@ -10,11 +10,21 @@
 * Scripts to transform Wojciech datasets into standard csv
 * Dataset descriptors (overview table of sources, basic info, licensing, etc)
 * Dataset details (e.g. structured format for inclusion criteria, etc)
+* A way to generate random datasets based on specific parameters, eg https://github.com/mcallaghan/buscarpy/blob/main/buscarpy/__init__.py#L26
 
 ## Documentation
 * Collect all resources on the topic in this repository
 * 
 
-## Simulation tasks
-* 
+## Stopping simulation tasks
+* Implement generic stopping interface*
+* Implement stopping criteria
+
+```python
+def compute_stop(list)
+```
+
+## Ranking simulation tasks
+* Implement framework
+* Implement ranking algorithms
 
