@@ -21,7 +21,8 @@
 * Implement stopping criteria
 
 ```python
-def compute_stop(list)
+def compute_stop(list_of_labels, list_of_model_scores, is_prioritised, num_total, **kwargs):
+    pass
 ```
 
 ## Ranking simulation tasks
