@@ -44,8 +44,8 @@ class Dataset:
         self.n_seen += batch_size
         return idxs, list(batch['labels']), list(batch['texts'])
 
-    def get_training(self):
-        pass
+    def get_seen_data(self):
+        return self.df[self.ordering[:self.n_seen]]
 
     def update_order(self, scores: np.ndarray[tuple[int], np.dtype[np.int_]]):
         if len(scores) != self.n_unseen:
