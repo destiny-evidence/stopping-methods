@@ -1,3 +1,5 @@
+from typing import Generator, TypedDict
+
 import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit
@@ -5,6 +7,10 @@ from shared.method import AbstractMethod, AbstractLogEntry
 from shared.types import IntList, StrList, FloatList
 
 Array = np.ndarray[tuple[int], np.dtype[np.int64]]
+
+
+class AlisonParamset(TypedDict):
+    recall_target: float
 
 
 class AlisonLogEntry(AbstractLogEntry):
@@ -21,17 +27,16 @@ def exp_func(x, a, b):
 class Alison(AbstractMethod):
     KEY = 'ALISON'
 
-    def parameter_options(self):
+    def parameter_options(self) -> Generator[AlisonParamset, None, None]:
         for target in [.8, .9, .95, .99]:
-            yield {'recall_target': target}
+            yield AlisonParamset(recall_target=target)
 
     def compute(self,
                 list_of_labels: IntList,
                 list_of_model_scores: FloatList,
                 is_prioritised: list[int] | list[bool] | pd.Series[bool] | pd.Series[int] | np.ndarray,
                 num_total: int,
-                recall_target: float,
-                **kwargs) -> AlisonLogEntry:
+                recall_target: float) -> AlisonLogEntry:
         labels = np.array(list_of_labels)
 
         # Fit the exponential curve and keep first parameter, which can be interpreted as
