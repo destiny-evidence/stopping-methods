@@ -38,5 +38,6 @@ class GenericCollection(AbstractCollection):
     def generate_datasets(self):
         for file in self.raw_folder.glob('*.jsonl'):
             with open(file, 'r') as f:
-                for line in f:
-                    rec = Record.model_validate_json(line)
+                records = [Record.model_validate_json(line) for line in f]
+                yield Dataset(labels=[rec.label_abs for rec in records],
+                              texts=[(rec.title or '') + ' ' + (rec.abstract or '') for rec in records])

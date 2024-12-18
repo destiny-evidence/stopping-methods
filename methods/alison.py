@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit
 from shared.method import AbstractMethod, AbstractLogEntry
-from shared.types import IntList, StrList, FloatList
+from shared.types import IntList, FloatList
 
 Array = np.ndarray[tuple[int], np.dtype[np.int64]]
 
