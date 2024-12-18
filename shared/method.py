@@ -5,6 +5,7 @@ from pydantic import BaseModel
 import pandas as pd
 import numpy as np
 
+from shared.dataset import Dataset
 from shared.types import IntList, FloatList
 
 
@@ -18,6 +19,10 @@ class AbstractLogEntry(BaseModel):
 
 class AbstractMethod(BaseModel, ABC):
     KEY: str
+
+    def __init__(self, dataset: Dataset, **kwargs: dict[str, Any]):
+        super().__init__(**kwargs)
+        self.dataset = dataset
 
     @abstractmethod
     def compute(self,

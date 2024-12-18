@@ -1,6 +1,8 @@
+import logging
 import os
 from pathlib import Path
 
+import pandas as pd
 from pydantic_settings import BaseSettings
 
 
@@ -18,6 +20,13 @@ class Settings(BaseSettings):
     @property
     def result_data_path(self) -> Path:
         return self.DATA_PATH / 'results'
+
+
+logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s: %(message)s', level=logging.INFO)
+logger = logging.getLogger('import')
+logger.setLevel(logging.DEBUG)
+
+pd.options.display.max_columns = None
 
 
 conf_file = os.environ.get('STOP_CONF', 'config/default.env')
