@@ -7,6 +7,6 @@ Minimum Variables
 Optional Variables
 * PMID | Type: Integer. Description: PubMed ID of the reference (if available). Missing Values: Represented as a 0. 
 * OA | Type: String. Description: OpenAlex identifier of the reference (if available). Missing values: Represented as an empty string ("").
-* DOI | Type: String. Description: Digital Object Identifier for the reference (if available). Missing Values: Allowed.
+* DOI | Type: String. Description: Digital Object Identifier for the reference (if available). Missing Values: Represented as an empty string (""). 
 * Keywords | Type: String. Description: Keywords for the reference, separated by semi-colons. Example: "Keyword1; Keyword2; Keyword3". Missing Values: Represented as an empty string ("").
 * FT_Label | Type: Integer. Description: Label indicating some classification (e.g., full-text relevance). Values: {0, 1}. Missing Values: Not allowed.
