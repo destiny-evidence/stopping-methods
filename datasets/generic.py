@@ -39,4 +39,4 @@ class GenericCollection(AbstractCollection):
         for file in self.raw_folder.glob('*.jsonl'):
             with open(file, 'r') as f:
                 for line in f:
-                    rec = Record.from_json(line)
+                    rec = Record.model_validate_json(line)

@@ -33,6 +33,10 @@ class AbstractMethod(BaseModel, ABC):
                 **kwargs: dict[str, Any]) -> AbstractLogEntry:
         raise NotImplementedError()
 
+    @abstractmethod
+    def parameter_options(self) -> Generator[dict[str, Any], None, None]:
+        raise NotImplementedError()
+
     def retrospective(self,
                       list_of_labels: IntList,
                       list_of_model_scores: FloatList,
