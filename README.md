@@ -1,5 +1,5 @@
 # Stopping methods for priority screening
-![logo](logo.png)
+![logo](Untitled design (1).png)
 
 Priority screening has gained popularity across all major systematic review tools.
 This process uses machine learning to rank all remaining unseen documents by their relevance.
