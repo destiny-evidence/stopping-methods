@@ -1,0 +1,4 @@
+scikit-learn==1.6.0
+pandas==2.2.3
+pydantic==2.9.2
+pydantic_settings==2.5.2
