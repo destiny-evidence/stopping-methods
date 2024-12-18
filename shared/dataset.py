@@ -1,22 +1,20 @@
-import importlib
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Generator
-from importlib.machinery import SourceFileLoader
 
 from pydantic import BaseModel
-import pandas as pd
 
 from shared.config import settings
+from shared.types import IntList, StrList
 
 
 class Dataset(BaseModel):
 
-    def get_labels(self) -> list[int] | pd.Series[int]:
+    def get_labels(self) -> IntList:
         # TODO
         pass
 
-    def get_texts(self) -> list[str] | pd.Series[str]:
+    def get_texts(self) -> StrList:
         # TODO
         pass
 
@@ -38,7 +36,7 @@ class AbstractCollection(BaseModel, ABC):
         return settings.processed_data_path / self.BASE
 
     @abstractmethod
-    def fetch_collection(self):
+    def fetch_collection(self) -> None:
         """
         Method to retrieve data from external sources and store it locally for further processing.
         Test if it exists first and do nothing if that's the case.
@@ -47,28 +45,17 @@ class AbstractCollection(BaseModel, ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def prepare_datasets(self):
+    def prepare_datasets(self) -> None:
         """
         Read the raw data and write arrow files to the processed dataset folder
         :return:
         """
         raise NotImplementedError()
 
+    @abstractmethod
     def generate_datasets(self) -> Generator[Dataset, None, None]:
         """
         Iterate through prepared data and yield Datasets
         :return:
         """
         raise NotImplementedError()
-
-
-def generate_collections() -> Generator[AbstractCollection, None, None]:
-    """
-    Iterates the implemented collections.
-    :return:
-    """
-    for file in Path('datasets').iterdir():
-        if file.suffix != '.py' or file.stem == '__init__':
-            continue
-        foo = SourceFileLoader("datasets", file).load_module()
-        yield foo.Collection()

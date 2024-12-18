@@ -1,5 +1,9 @@
-from shared.dataset import Dataset, Collection
+from shared.dataset import Dataset, AbstractCollection
 
 
-class SynergyDataset(Collection):
-    pass
+class SynergyDataset(AbstractCollection):
+    def fetch_collection(self):
+        pass
+
+    def prepare_datasets(self):
+        pass
