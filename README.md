@@ -1,5 +1,5 @@
 # Stopping methods for priority screening
-[Untitled design (1)](https://github.com/user-attachments/assets/1dd4e152-1a5c-404b-9e9d-d8b6738783c8)
+![logo](https://github.com/user-attachments/assets/1dd4e152-1a5c-404b-9e9d-d8b6738783c8)
 
 
 Priority screening has gained popularity across all major systematic review tools.
