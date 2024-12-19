@@ -55,8 +55,15 @@ for each repitition
 
 ### How to run 
 ```
-PYTHONPATH=. python -u simulation/simulate.py FIXED
 Requires python 3.12
+```
+
+```
+# To run simulation
+PYTHONPATH=. python simulation/simulate.py FIXED
+
+# To run evaluation
+PYTHONPATH=. python simulation/evaluation.py 
 ```
 
 ## Roadmap
