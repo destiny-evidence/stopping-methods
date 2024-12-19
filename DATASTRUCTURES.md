@@ -18,3 +18,5 @@ To avoid issues with merging, each individual metadataset should contain the fol
 * n_total | Type: Integer. Description: Total number of records/documents in the review dataset. Missing values: Not allowed.
 * n_includes | Type: Integer. Description: Total number of included records/documents in the review dataset. Missing values: Not allowed.
 * include_ratio | Type: Float. Description: Proportion of included records, calculated as: N_includes/N_total. Missing values: Not allowed. 
+
+See generic_json.py for datastructure for simulation dataset fields
