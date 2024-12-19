@@ -13,7 +13,7 @@ class HeuristicFractionParamset(TypedDict):
 
 
 class HeuristicFractionLogEntry(AbstractLogEntry):
-    key: str = 'HEURISTICFRACTION'
+    KEY: str = 'HEURISTICFRACTION'
 
 
 class HeuristicFraction(AbstractMethod):

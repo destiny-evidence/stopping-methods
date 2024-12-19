@@ -41,7 +41,7 @@ class Dataset:
         if self.n_seen == 0:
             logger.debug('Initial shuffle')
             random.shuffle(self.ordering)
-            while self.ordering[:10].sum() == 0:
+            while self.df.iloc[self.ordering[:10]]['labels'].sum() == 0:
                 logger.debug('Initial reshuffle to get some positives in the first batch')
                 random.shuffle(self.ordering)
         else:
