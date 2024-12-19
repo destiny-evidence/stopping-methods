@@ -17,7 +17,7 @@ class HeuristicFractionLogEntry(AbstractLogEntry):
 
 
 class HeuristicFraction(AbstractMethod):
-    KEY = 'HEURISTICFRACTION'
+    KEY: str = 'HEURISTICFRACTION'
 
     def parameter_options(self) -> Generator[HeuristicFractionParamset, None, None]:
         for target in [.01, .05, .057, .1, 0.2]:
@@ -29,7 +29,7 @@ class HeuristicFraction(AbstractMethod):
                 is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
                 fractions: float) -> HeuristicFractionLogEntry:
         num_to_stop = self.dataset.n_total * fractions
-        last_labels = list_of_labels[-num_to_stop:]
+        last_labels = list_of_labels[max(0, -num_to_stop):]
 
         return HeuristicFractionLogEntry(safe_to_stop=1 not in last_labels,
                                          num_seen=len(list_of_labels),
