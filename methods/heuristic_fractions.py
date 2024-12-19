@@ -14,6 +14,7 @@ class HeuristicFractionParamset(TypedDict):
 
 class HeuristicFractionLogEntry(AbstractLogEntry):
     KEY: str = 'HEURISTICFRACTION'
+    num_to_stop: int
 
 
 class HeuristicFraction(AbstractMethod):
@@ -28,9 +29,8 @@ class HeuristicFraction(AbstractMethod):
                 list_of_model_scores: FloatList,
                 is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
                 fractions: float) -> HeuristicFractionLogEntry:
-        num_to_stop = self.dataset.n_total * fractions
+        num_to_stop = int(self.dataset.n_total * fractions)
         last_labels = list_of_labels[max(0, -num_to_stop):]
 
         return HeuristicFractionLogEntry(safe_to_stop=1 not in last_labels,
-                                         num_seen=len(list_of_labels),
-                                         num_included=list_of_labels.sum())
+                                         num_to_stop=num_to_stop)

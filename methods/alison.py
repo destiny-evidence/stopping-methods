@@ -55,8 +55,7 @@ class Alison(AbstractMethod):
         # Alternative definition is to always normalise by expected includes
         # score = abs(a - labels.sum()) / a
 
-        return AlisonLogEntry(KEY=self.KEY,
-                              safe_to_stop=score is not None and score < 1 - recall_target,
+        return AlisonLogEntry(safe_to_stop=score is not None and score < 1 - recall_target,
                               expected_includes=a,
                               predicted_recall=pred_recall,
                               score=score,

@@ -60,6 +60,7 @@ def full_run(strategy: BatchSizeStrategy,
                 seen_df = dataset.get_seen_data()
 
                 for method in it_methods(dataset=dataset):
+                    logger.info(f'Running method {method.KEY}')
                     for paramset in method.parameter_options():
                         tracker.log_entry(method.compute(
                             list_of_labels=seen_df['labels'],

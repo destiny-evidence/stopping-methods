@@ -35,6 +35,7 @@ class Tracker:
         for entry in self.log_entries:
             self.rows.append({
                 **base_entry,
+                'method': entry.KEY,
                 **{
                     f'prio-{entry.KEY}-{k}': v
                     for k, v in entry.model_dump().items()
