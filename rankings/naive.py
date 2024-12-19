@@ -56,15 +56,10 @@ class NaiveRankings(AbstractRanker):
 
         self.model = None
 
+    def train(self):
+        self.model = SVC(C=1.0, kernel='linear', degree=3, gamma='auto')
+        seen = self.dataset.get_seen_data()
+        self.model.fit(self.vectors[seen.index], seen[seen.index]['labels'])
 
-def train(self):
-    self.model()
-    self.model = SVC(C=1.0, kernel='linear', degree=3, gamma='auto')
-    seen = self.dataset.get_seen_data()
-    self.model.fit(self.vectors[seen.index], seen[seen.index]['labels'])
-    # predict the labels on validation dataset
-    predictions_SVM = SVM.predict(Test_X_Tfidf)
-
-
-def predict(self) -> np.ndarray:
-    pass
+    def predict(self) -> np.ndarray:
+        pass
