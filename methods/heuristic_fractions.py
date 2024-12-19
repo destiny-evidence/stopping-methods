@@ -28,15 +28,9 @@ class HeuristicFraction(AbstractMethod):
                 list_of_model_scores: FloatList,
                 is_prioritised: list[int] | list[bool] | pd.Series[bool] | pd.Series[int] | np.ndarray,
                 fractions: float) -> HeuristicFractionLogEntry:
-
         num_to_stop = self.dataset.n_total * fractions
-
         last_labels = list_of_labels[-num_to_stop:]
-        if 1 not in last_labels:
-            can_stop = True
-        else:
-            can_stop = False
 
-        return HeuristicFractionLogEntry(safe_to_stop=can_stop,
+        return HeuristicFractionLogEntry(safe_to_stop=1 not in last_labels,
                                          num_seen=len(list_of_labels),
                                          num_included=list_of_labels.sum())
