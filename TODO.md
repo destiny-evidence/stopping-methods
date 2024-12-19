@@ -28,3 +28,6 @@
 * Summarise all simulation runs per method, ranker, paramset, ...
 * Produce plots from a run per dataset with vertical lines where each stopping criterion would ave first stopped
 
+## Improvements
+* Run all rankers N times for each dataset and store rankings
+* Use rankings to compute stopping methods

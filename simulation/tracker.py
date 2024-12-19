@@ -36,8 +36,9 @@ class Tracker:
             self.rows.append({
                 **base_entry,
                 'method': entry.KEY,
+                'safe_to_stop': entry.safe_to_stop,
                 **{
-                    f'prio-{entry.KEY}-{k}': v
+                    f'method-{entry.KEY}-{k}': v
                     for k, v in entry.model_dump().items()
                 },
                 **{
