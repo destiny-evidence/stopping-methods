@@ -9,6 +9,8 @@ __pycache__/
 
 # C extensions
 *.so
+myenv/
+stopping-method/
 
 # Distribution / packaging
 .Python
