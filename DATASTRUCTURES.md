@@ -16,7 +16,9 @@ To avoid issues with merging, each individual metadataset should contain the fol
 * review_type: Type: String. Description: Description of the review type. Example: "Prognostic", "Diagnostic Test Accuracy", "Intervention". Missing values: Can be initially be left empty as ("") if information not obvious. 
 * eligibility_criteria | Type: String. Description: A short description of the inclusion criteria for the dataset. Missing values: Can be initially be left empty as (""). 
 * n_total | Type: Integer. Description: Total number of records/documents in the review dataset. Missing values: Not allowed.
-* n_includes | Type: Integer. Description: Total number of included records/documents in the review dataset. Missing values: Not allowed.
-* include_ratio | Type: Float. Description: Proportion of included records, calculated as: N_includes/N_total. Missing values: Not allowed. 
+* n_includes_ab | Type: Integer. Description: Total number of included records/documents in the review dataset based on abstract screening. Missing values: Not allowed.
+* n_includes_ft | Type: Integer. Description: Total number of included records/documents in the review dataset based on full-text screening. Missing values: NA. 
+* include_ratio_abs | Type: Float. Description: Proportion of included records based on abstract screening, calculated as: n_includes_abs/n_total. Missing values: Not allowed. 
+* include_ratio_ft | Type: Float. Description: Proportion of included records based on full-text screening, calculated as: calculated as: n_includes_abs/n_total. Missing values: NA. 
 
 See generic_json.py for datastructure for simulation dataset fields
