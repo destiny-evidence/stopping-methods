@@ -14,7 +14,7 @@ class AlisonParamset(TypedDict):
 
 
 class AlisonLogEntry(AbstractLogEntry):
-    key: str = 'ALISON'
+    KEY: str = 'ALISON'
 
     expected_includes: float
     expected_remaining: int
@@ -35,7 +35,6 @@ class Alison(AbstractMethod):
                 list_of_labels: IntList,
                 list_of_model_scores: FloatList,
                 is_prioritised: list[int] | list[bool] | pd.Series[bool] | pd.Series[int] | np.ndarray,
-                num_total: int,
                 recall_target: float) -> AlisonLogEntry:
         labels = np.array(list_of_labels)
 
@@ -50,8 +49,6 @@ class Alison(AbstractMethod):
         # score = abs(a - labels.sum()) / a
 
         return AlisonLogEntry(safe_to_stop=score is not None and score < 1 - recall_target,
-                              num_seen=len(list_of_labels),
-                              num_included=list_of_labels.sum(),
                               expected_includes=a,
                               score=score,
                               expected_remaining=abs(a - labels.sum()))

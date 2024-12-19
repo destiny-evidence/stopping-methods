@@ -1,9 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from shared.collection import AbstractCollection
 from shared.dataset import Dataset
 
 
 class Record(BaseModel):
+    model_config = ConfigDict(extra='allow')
+
     # A unique identifier for each reference within the dataset. Example: 1, 2, 3, 4, 5. Missing Values: Not allowed
     id: int
     # Title of the reference. Missing Values: Represented as None.
@@ -27,7 +29,7 @@ class Record(BaseModel):
 
 
 class GenericCollection(AbstractCollection):
-    BASE = 'generic'
+    BASE = 'generic-jsonl'
 
     def fetch_collection(self):
         pass  # we assume the raw files were put in the directory already
@@ -39,5 +41,6 @@ class GenericCollection(AbstractCollection):
         for file in self.raw_folder.glob('*.jsonl'):
             with open(file, 'r') as f:
                 records = [Record.model_validate_json(line) for line in f]
-                yield Dataset(labels=[rec.label_abs for rec in records],
+                yield Dataset(key=f'generic-{file.stem}',
+                              labels=[rec.label_abs for rec in records],
                               texts=[(rec.title or '') + ' ' + (rec.abstract or '') for rec in records])
