@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from shared.dataset import Dataset
 
 
-class AbstractRanker(BaseModel, ABC):
+class AbstractRanker(ABC):
     KEY: str
 
     def __init__(self,
@@ -29,9 +29,13 @@ class AbstractRanker(BaseModel, ABC):
         self.train_from_scratch = train_from_scratch
 
     @abstractmethod
-    def train(self):
-        pass
+    def get_params(self) -> dict[str, Any]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def train(self) -> None:
+        raise NotImplementedError()
 
     @abstractmethod
     def predict(self) -> np.ndarray:
-        pass
+        raise NotImplementedError()
