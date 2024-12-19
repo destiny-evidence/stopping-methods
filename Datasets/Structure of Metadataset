@@ -4,7 +4,7 @@ We will then combine these metadatasets into a single metadataset.
 
 To avoid issues with merging, each individual metadataset should contain the following fields: 
 
-* Name | Type: String. Description: File name of the dataset. Example: "heart_dataset.csv".
+* name | Type: String. Description: File name of the dataset. Example: "heart_dataset.csv".
 * evidence_synthesis_type | Type: String. Description: The type of review conducted. Must be one of the following predefined options:
 	•	"Systematic Review"
 	•	"Evidence Map"
