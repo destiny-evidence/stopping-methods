@@ -35,7 +35,7 @@ class Alison(AbstractMethod):
     def compute(self,
                 list_of_labels: IntList,
                 list_of_model_scores: FloatList,
-                is_prioritised: list[int] | list[bool] | pd.Series[bool] | pd.Series[int] | np.ndarray,
+                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
                 recall_target: float) -> AlisonLogEntry:
         labels = np.array(list_of_labels)
 
@@ -60,4 +60,4 @@ class Alison(AbstractMethod):
                               expected_includes=a,
                               predicted_recall=pred_recall,
                               score=score,
-                              expected_remaining=abs(a - labels.sum()))
+                              expected_remaining=int(abs(a - labels.sum())))

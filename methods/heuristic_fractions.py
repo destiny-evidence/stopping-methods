@@ -26,7 +26,7 @@ class HeuristicFraction(AbstractMethod):
     def compute(self,
                 list_of_labels: IntList,
                 list_of_model_scores: FloatList,
-                is_prioritised: list[int] | list[bool] | pd.Series[bool] | pd.Series[int] | np.ndarray,
+                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
                 fractions: float) -> HeuristicFractionLogEntry:
         num_to_stop = self.dataset.n_total * fractions
         last_labels = list_of_labels[-num_to_stop:]
