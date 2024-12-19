@@ -87,7 +87,7 @@ PYTHONPATH=. python simulation/evaluation.py
 ## Contributors
 This repository was started at the [Evidence Synthesis Hackathon 2024](https://www.eshackathon.org/) by
 * Lena Schmidt (NIHR)
-* Francesca Tinsdeall (Uni Edinburgh)
+* Francesca Tinsdeall (University of Edinburgh)
 * Sergio Graziosi (EPPI@UCL)
 * James Thomas (EPPI@UCL)
 * Diana Danilenko (PIK)
