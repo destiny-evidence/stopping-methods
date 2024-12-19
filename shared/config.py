@@ -22,8 +22,8 @@ class Settings(BaseSettings):
         return self.DATA_PATH / 'results'
 
 
-logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s: %(message)s', level=logging.INFO)
-logger = logging.getLogger('import')
+logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s: %(message)s', level=logging.DEBUG)
+logger = logging.getLogger('base')
 logger.setLevel(logging.DEBUG)
 
 pd.options.display.max_columns = None

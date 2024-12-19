@@ -29,7 +29,7 @@ class Record(BaseModel):
 
 
 class GenericCollection(AbstractCollection):
-    BASE = 'generic-jsonl'
+    BASE: str = 'generic-jsonl'
 
     def fetch_collection(self):
         pass  # we assume the raw files were put in the directory already

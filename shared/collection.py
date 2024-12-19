@@ -11,7 +11,7 @@ class AbstractCollection(BaseModel, ABC):
     # Name of the folder for this collection that is unique across all collections as a reference key
     BASE: str
 
-    NAME: str
+    # NAME: str
 
     # TODO more default metadata
 

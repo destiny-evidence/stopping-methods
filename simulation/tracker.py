@@ -5,39 +5,30 @@ import pandas as pd
 from shared.config import settings
 from shared.dataset import Dataset
 from shared.method import AbstractLogEntry
+from shared.ranking import AbstractRanker
 
 
 class Tracker:
     def __init__(self):
-        self.batch_i: int = 0
-        self.batch_idxs: list[int] = []
-        self.ranker: str | None = None
-        self.dataset: Dataset | None = None
         self.log_entries: list[AbstractLogEntry] = []
         self.rows: list[dict[str, Any]] = []
-
-    def register_batch(self, ranker: str, dataset: Dataset, batch_i: int, batch_idxs: list[int]) -> None:
-        self.dataset = dataset
-        self.batch_i = batch_i
-        self.batch_idxs = batch_idxs
-        self.ranker = ranker
 
     def log_entry(self, entry: AbstractLogEntry) -> None:
         self.log_entries.append(entry)
 
-    def commit_batch(self):
-        batch = self.dataset.df.iloc[self.batch_idxs]
+    def commit_batch(self, model: AbstractRanker, dataset: Dataset, batch_i: int, batch_idxs: list[int]):
+        batch = dataset.df.iloc[batch_idxs]
 
         base_entry = {
-            'dataset': self.dataset.KEY,
-            'ranker': self.ranker,
-            'batch_i': self.batch_i,
-            'batch_idxs': self.batch_idxs,
-            'n_total': self.dataset.n_total,
-            'n_seen': self.dataset.n_seen,
-            'n_unseen': self.dataset.n_unseen,
-            'n_incl': self.dataset.n_incl,
-            'n_incl_seen': self.dataset.get_seen_data()['labels'].sum(),
+            'dataset': dataset.KEY,
+            'ranker': model.KEY,
+            'batch_i': batch_i,
+            'batch_idxs': batch_idxs,
+            'n_total': dataset.n_total,
+            'n_seen': dataset.n_seen,
+            'n_unseen': dataset.n_unseen,
+            'n_incl': dataset.n_incl,
+            'n_incl_seen': dataset.get_seen_data()['labels'].sum(),
             'n_incl_batch': batch['labels'].sum(),
             'n_records_batch': batch.shape[0],
         }
@@ -45,9 +36,13 @@ class Tracker:
             self.rows.append({
                 **base_entry,
                 **{
-                    f'{entry.KEY}-{k}': v
+                    f'prio-{entry.KEY}-{k}': v
                     for k, v in entry.model_dump().items()
                 },
+                **{
+                    f'ranker-{k}': v
+                    for k, v in model.get_params().items()
+                }
             })
 
         # Write entire log to disk
@@ -55,6 +50,3 @@ class Tracker:
 
         # Reset our batch trackers
         self.log_entries = []
-        self.batch_idxs = []
-        self.dataset = None
-        self.ranker = None

@@ -26,7 +26,7 @@ class BuscarParamset(TypedDict):
 
 
 class Buscar(AbstractMethod):
-    KEY = 'BUSCAR'
+    KEY: str = 'BUSCAR'
 
     def parameter_options(self) -> Generator[BuscarParamset, None, None]:
         for target in [.8, .9, .95, .99]:
@@ -37,7 +37,7 @@ class Buscar(AbstractMethod):
     def compute(self,
                 list_of_labels: IntList,
                 list_of_model_scores: FloatList,
-                is_prioritised: list[int] | list[bool] | pd.Series[bool] | pd.Series[int] | np.ndarray,
+                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
                 recall_target: float = 0.95,
                 bias: float = 1,
                 confidence_level: float = 0.95) -> BuscarLogEntry:

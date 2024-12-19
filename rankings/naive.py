@@ -18,24 +18,30 @@ logger = logging.getLogger('naive rank')
 logger.debug('Loading NLTK data...')
 nltk.download('stopwords')
 nltk.download('punkt')
+nltk.download('punkt_tab')
 
 type Variant = Literal['SVM', 'SGD']
 
 
 class NaiveRankings(AbstractRanker):
+    KEY: str = 'NAIVE'
+
     def __init__(self,
                  dataset: Dataset,
                  train_on_new_only: bool = False,
                  train_from_scratch: bool = True,
-                 variant: Variant = 'SVM',
+                 variant: Variant = 'SGD',
                  **kwargs: dict[str, Any]):
-        super().__init__(dataset, train_on_new_only, train_from_scratch, **kwargs)
+        super().__init__(dataset=dataset,
+                         train_on_new_only=train_on_new_only,
+                         train_from_scratch=train_from_scratch,
+                         **kwargs)
         self.variant = variant
 
         stopwords = sw.words('english')
 
         logger.info('Preprocess texts')
-        texts = dataset.df['text']
+        texts = dataset.texts
         self.texts = [
             ' '.join([tok
                       for tok in nltk.word_tokenize(text)
@@ -51,16 +57,16 @@ class NaiveRankings(AbstractRanker):
     def train(self):
         seen = self.dataset.get_seen_data()
         x = self.vectors[seen.index]
-        y = seen[seen.index]['labels']
+        y = seen['labels']
 
         if self.variant == 'SVM':
-            class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(y), y=y)
-            self.model = SVC(C=1.0, kernel='linear', degree=3, gamma='auto', class_weight=class_weights)
+            # class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y), y=y)
+            self.model = SVC(C=1.0, kernel='linear', degree=3, gamma='auto', class_weight='balanced')
 
         elif self.variant == 'SGD':
-            model = SGDClassifier(class_weight="balanced", loss="log")
+            model = SGDClassifier(class_weight='balanced', loss='log_loss')
             parameters = {'alpha': 10.0 ** -np.arange(1, 7)}
-            self.model = GridSearchCV(model, parameters, scoring="roc_auc", cv=StratifiedKFold(n_splits=2))
+            self.model = GridSearchCV(model, parameters, scoring='roc_auc', cv=StratifiedKFold(n_splits=2))
 
         else:
             raise NotImplementedError(f'Unknown variant {self.variant}')
@@ -68,6 +74,12 @@ class NaiveRankings(AbstractRanker):
         self.model.fit(x, y)
 
     def predict(self) -> np.ndarray:
-        unseen = self.dataset.df[self.dataset.ordering[:self.dataset.n_seen]]
+        unseen = self.dataset.df.iloc[self.dataset.ordering[self.dataset.n_seen:]]
+        if len(unseen) == 0:
+            return np.array([])
+
         y_preds = self.model.predict_proba(self.vectors[unseen.index])
         return y_preds[:, 1]
+
+    def get_params(self) -> dict[str, Any]:
+        return {'variant': self.variant, **self.model.get_params()}

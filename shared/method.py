@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod, abstractclassmethod
+from abc import ABC, abstractmethod
 from typing import Any, Generator
 
 from pydantic import BaseModel
@@ -15,7 +15,7 @@ class AbstractLogEntry(BaseModel):
     score: float | None = None
 
 
-class AbstractMethod(BaseModel, ABC):
+class AbstractMethod(ABC):
     KEY: str
 
     def __init__(self, dataset: Dataset, **kwargs: dict[str, Any]):
@@ -26,7 +26,7 @@ class AbstractMethod(BaseModel, ABC):
     def compute(self,
                 list_of_labels: IntList,
                 list_of_model_scores: FloatList,
-                is_prioritised: list[int] | list[bool] | pd.Series[bool] | pd.Series[int] | np.ndarray,
+                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
                 **kwargs: dict[str, Any]) -> AbstractLogEntry:
         raise NotImplementedError()
 
@@ -37,7 +37,7 @@ class AbstractMethod(BaseModel, ABC):
     def retrospective(self,
                       list_of_labels: IntList,
                       list_of_model_scores: FloatList,
-                      is_prioritised: list[int] | list[bool] | pd.Series[bool] | pd.Series[int] | np.ndarray,
+                      is_prioritised: list[int] | list[bool] | pd.Series| np.ndarray,
                       batch_size: int = 100,
                       **kwargs: dict[str, Any]) -> Generator[AbstractLogEntry, None, None]:
         for n_seen_batch in range(batch_size, len(list_of_labels), batch_size):
