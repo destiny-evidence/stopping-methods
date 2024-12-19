@@ -5,3 +5,4 @@ pydantic_settings==2.5.2
 scipy==1.14.1
 typer==0.15.1
 nltk==3.9.1
+rispy==0.9.0
