@@ -53,6 +53,12 @@ for each repitition
 * Stopping methods: Implementations or adapters to run a stopping criterion
 * Evaluation framework: Scripts to run simulations
 
+### How to run 
+```
+PYTHONPATH=. python -u simulation/simulate.py FIXED
+Requires python 3.12
+```
+
 ## Roadmap
 - [ ] Collect all resources
 - [ ] Collect datasets and transform them into a common format
