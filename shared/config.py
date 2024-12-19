@@ -27,6 +27,7 @@ logger = logging.getLogger('base')
 logger.setLevel(logging.DEBUG)
 
 pd.options.display.max_columns = None
+pd.options.display.max_rows = None
 
 
 conf_file = os.environ.get('STOP_CONF', 'config/default.env')
