@@ -24,3 +24,7 @@
 * Implement framework
 * Implement ranking algorithms
 
+## Evaluation
+* Summarise all simulation runs per method, ranker, paramset, ...
+* Produce plots from a run per dataset with vertical lines where each stopping criterion would ave first stopped
+

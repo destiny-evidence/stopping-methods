@@ -35,6 +35,3 @@ class AbstractRanker(BaseModel, ABC):
     @abstractmethod
     def predict(self) -> np.ndarray:
         pass
-
-    def update(self):
-        pass
