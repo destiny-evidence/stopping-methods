@@ -10,10 +10,8 @@ from shared.types import IntList, FloatList
 
 
 class AbstractLogEntry(BaseModel):
-    key: str
+    KEY: str
     safe_to_stop: bool
-    num_seen: int
-    num_included: int
     score: float | None = None
 
 
@@ -29,7 +27,6 @@ class AbstractMethod(BaseModel, ABC):
                 list_of_labels: IntList,
                 list_of_model_scores: FloatList,
                 is_prioritised: list[int] | list[bool] | pd.Series[bool] | pd.Series[int] | np.ndarray,
-                num_total: int,
                 **kwargs: dict[str, Any]) -> AbstractLogEntry:
         raise NotImplementedError()
 
@@ -41,7 +38,6 @@ class AbstractMethod(BaseModel, ABC):
                       list_of_labels: IntList,
                       list_of_model_scores: FloatList,
                       is_prioritised: list[int] | list[bool] | pd.Series[bool] | pd.Series[int] | np.ndarray,
-                      num_total: int,
                       batch_size: int = 100,
                       **kwargs: dict[str, Any]) -> Generator[AbstractLogEntry, None, None]:
         for n_seen_batch in range(batch_size, len(list_of_labels), batch_size):
@@ -49,5 +45,4 @@ class AbstractMethod(BaseModel, ABC):
             yield self.compute(list_of_labels=batch_labels,
                                list_of_model_scores=list_of_model_scores,
                                is_prioritised=is_prioritised,
-                               num_total=num_total,
                                **kwargs)
