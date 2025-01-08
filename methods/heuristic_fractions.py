@@ -30,7 +30,10 @@ class HeuristicFraction(AbstractMethod):
                 is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
                 fractions: float) -> HeuristicFractionLogEntry:
         num_to_stop = int(self.dataset.n_total * fractions)
-        last_labels = list_of_labels[max(0, -num_to_stop):]
+        try:#When testing updated code with max function (now in except statement) I realized there might be an issue because it seems to just take all screened refs and thus doesn't stop (as there usually is a 1 somewhre in early screening part). I know it was added because there was an edge-case somewhere which led the original code using [-num_to_stop:] to fail so I added some safety statements and the new code as fallback.
+            last_labels = list(list_of_labels)[-num_to_stop:]
+        except:
+            last_labels = list_of_labels[max(0, -num_to_stop):]
 
         return HeuristicFractionLogEntry(safe_to_stop=1 not in last_labels,
                                          num_to_stop=num_to_stop)

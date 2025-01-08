@@ -21,8 +21,8 @@ class AlisonLogEntry(AbstractLogEntry):
     predicted_recall: float
 
 
-def exp_func(x, a, b):
-    return a * np.exp(-b * x)
+def exp_func(x, A, lamda):
+    return A * (1 - np.exp(-lamda * x))
 
 
 class Alison(AbstractMethod):
@@ -39,11 +39,14 @@ class Alison(AbstractMethod):
                 recall_target: float) -> AlisonLogEntry:
         labels = np.array(list_of_labels)
 
-        # Fit the exponential curve and keep first parameter, which can be interpreted as
-        (a, _), _ = curve_fit(exp_func,
-                              np.arange(len(list_of_labels)),
-                              labels.cumsum(),
-                              maxfev=1000)
+        try:
+            (a, _), _ = curve_fit(exp_func,
+                                  np.arange(len(list_of_labels)),
+                                  labels.cumsum(),
+                                  maxfev=10000)
+        except:
+            a=self.dataset.n_total#the method might fail to fit and throw an error. If this happens, we set the number of expected includes to the total number of documents in the dataset (ie. worst-case scenario)
+
         # Rescale the difference between number seen and number expected includes
         score = abs(a - labels.sum()) / max(a, labels.sum())
         my_seen_data = self.dataset.get_seen_data()  # a df showing the 'screened' data at each simulation step
