@@ -55,8 +55,15 @@ for each repitition
 
 ### How to run 
 ```
-PYTHONPATH=. python -u simulation/simulate.py FIXED
 Requires python 3.12
+```
+
+```
+# To run simulation
+PYTHONPATH=. python simulation/simulate.py FIXED
+
+# To run evaluation
+PYTHONPATH=. python simulation/evaluation.py 
 ```
 
 ## Roadmap
@@ -80,7 +87,7 @@ Requires python 3.12
 ## Contributors
 This repository was started at the [Evidence Synthesis Hackathon 2024](https://www.eshackathon.org/) by
 * Lena Schmidt (NIHR)
-* Francesca Tinsdeall (Uni Edinburgh)
+* Francesca Tinsdeall (University of Edinburgh)
 * Sergio Graziosi (EPPI@UCL)
 * James Thomas (EPPI@UCL)
 * Diana Danilenko (PIK)

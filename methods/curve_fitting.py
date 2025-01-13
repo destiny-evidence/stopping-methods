@@ -23,12 +23,12 @@ class CurveFittingLogEntry(AbstractLogEntry):
 
 functions = {
     'exp': lambda x, a, b: a * np.exp(-b * x),
-
+# alison:     return A * (1 - np.exp(-lamda * x))
 }
 
 
 def exp_func(x, a, b):
-    return
+    return a * np.exp(-b * x)
 
 
 class CurveFitting(AbstractMethod):
