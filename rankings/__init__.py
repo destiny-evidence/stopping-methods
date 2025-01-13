@@ -1,3 +1,4 @@
 from .naive import NaiveRankings
+from .svm import SVMRanking
 
-__all__ = ['NaiveRankings']
+__all__ = ['SVMRanking']

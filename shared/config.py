@@ -18,6 +18,10 @@ class Settings(BaseSettings):
         return self.DATA_PATH / 'processed'
 
     @property
+    def ranking_data_path(self) -> Path:
+        return self.DATA_PATH / 'rankings'
+
+    @property
     def result_data_path(self) -> Path:
         return self.DATA_PATH / 'results'
 
@@ -28,7 +32,6 @@ logger.setLevel(logging.DEBUG)
 
 pd.options.display.max_columns = None
 pd.options.display.max_rows = None
-
 
 conf_file = os.environ.get('STOP_CONF', 'config/default.env')
 settings = Settings(_env_file=conf_file, _env_file_encoding='utf-8')

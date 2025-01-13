@@ -9,34 +9,40 @@ from shared.types import IntList, FloatList
 Array = np.ndarray[tuple[int], np.dtype[np.int64]]
 
 
-class AlisonParamset(TypedDict):
+class CurveFittingParamset(TypedDict):
     recall_target: float
 
 
-class AlisonLogEntry(AbstractLogEntry):
-    KEY: str = 'ALISON'
+class CurveFittingLogEntry(AbstractLogEntry):
+    KEY: str = 'CurveFitting'
 
     expected_includes: float
     expected_remaining: int
     predicted_recall: float
 
 
+functions = {
+    'exp': lambda x, a, b: a * np.exp(-b * x),
+
+}
+
+
 def exp_func(x, a, b):
-    return a * np.exp(-b * x)
+    return
 
 
-class Alison(AbstractMethod):
-    KEY = 'ALISON'
+class CurveFitting(AbstractMethod):
+    KEY = 'CurveFitting'
 
-    def parameter_options(self) -> Generator[AlisonParamset, None, None]:
+    def parameter_options(self) -> Generator[CurveFittingParamset, None, None]:
         for target in [.8, .9, .95, .99]:
-            yield AlisonParamset(recall_target=target)
+            yield CurveFittingParamset(recall_target=target)
 
     def compute(self,
                 list_of_labels: IntList,
                 list_of_model_scores: FloatList,
                 is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
-                recall_target: float) -> AlisonLogEntry:
+                recall_target: float) -> CurveFittingLogEntry:
         labels = np.array(list_of_labels)
 
         # Fit the exponential curve and keep first parameter, which can be interpreted as
@@ -55,7 +61,7 @@ class Alison(AbstractMethod):
         # Alternative definition is to always normalise by expected includes
         # score = abs(a - labels.sum()) / a
 
-        return AlisonLogEntry(safe_to_stop=score is not None and score < 1 - recall_target,
+        return CurveFittingLogEntry(safe_to_stop=score is not None and score < 1 - recall_target,
                               expected_includes=a,
                               predicted_recall=pred_recall,
                               score=score,

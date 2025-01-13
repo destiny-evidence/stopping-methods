@@ -1,21 +1,44 @@
 import logging
 import random
+from enum import Enum
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
 
 
+class BatchStrategy(str, Enum):
+    STATIC = 'STATIC'
+    DYNAMIC = 'DYNAMIC'
+
+
 class Dataset:
-    def __init__(self, key: str, labels: list[int], texts: list[str]):
+    def __init__(self,
+                 key: str,
+                 labels: list[int], texts: list[str],
+                 batch_strategy: BatchStrategy = BatchStrategy.STATIC,
+                 stat_batch_size: int = 100,
+                 dyn_min_batch_incl: int = 2,
+                 dyn_min_batch_size: int = 100,
+                 dyn_growth_rate: float = 0.5,
+                 dyn_max_batch_size: int = 200,
+                 inject_random_batch_every: int = 0):
         self.KEY = key
         self.labels = labels
         self.texts = texts
 
-        self.df = pd.DataFrame({'labels': self.labels, 'texts': self.texts, 'scores': None, 'is_prioritised': None})
+        self.df = pd.DataFrame()
+        self.reset()
 
-        self.ordering = np.arange(len(self.texts))
-        self.n_seen = 0
+        self.batch_strategy = batch_strategy
+        self.batch_size = stat_batch_size
+        self.min_batch_incl = dyn_min_batch_incl
+        self.min_batch_size = dyn_min_batch_size
+        self.growth_rate = dyn_growth_rate
+        self.max_batch_size = dyn_max_batch_size
+        self.inject_random_batch_every = inject_random_batch_every
 
     @property
     def n_total(self) -> int:
@@ -23,55 +46,140 @@ class Dataset:
 
     @property
     def n_incl(self) -> int:
-        return self.df['labels'].sum()
+        return self.df['label'].sum()
+
+    @property
+    def n_seen(self) -> int:
+        return self.df['batch'].notna().sum()
 
     @property
     def n_unseen(self):
-        return self.n_total - self.n_seen
+        return self.df['batch'].isna().sum()
 
     @property
     def has_unseen(self):
         return self.n_unseen > 0
 
+    @property
+    def last_batch(self) -> int:
+        last = self.df['batch'].max()
+        return 0 if np.isnan(last) else last
+
     def __len__(self) -> int:
         return self.n_total
 
-    def shuffle_unseen(self):
-        logger.info('Shuffling unseen data')
-        if self.n_seen == 0:
-            logger.debug('Initial shuffle')
-            random.shuffle(self.ordering)
-            while self.df.iloc[self.ordering[:10]]['labels'].sum() == 0:
-                logger.debug('Initial reshuffle to get some positives in the first batch')
-                random.shuffle(self.ordering)
-        else:
-            random.shuffle(self.ordering[self.n_seen:])
+    @property
+    def seen_data(self):
+        return self.df[self.df['batch'].notna()].sort_values(by='order')
 
-    def get_next_batch(self, batch_size: int) -> tuple[list[int], list[int], list[str]]:
-        """
-        :param batch_size:
-        :return:
-           list of idxs in next batch,
-           list of labels in next batch,
-           list of texts in next batch
-        """
+    @property
+    def unseen_data(self):
+        return self.df[self.df['batch'].isna()]
+
+    def reset(self) -> None:
+        self.df = pd.DataFrame({
+            'id': np.arange(len(self.texts)),
+            'batch': None,
+            'order': None,
+            'random': None,
+            'label': self.labels,
+            'text': self.texts,
+        })
+
+    def get_next_batch_size(self) -> int:
+        logger.info(f'Batch size compute for {self.n_seen:,} seen, {self.n_unseen:,} unseen, {self.n_total:,} total '
+                    f'({self.seen_data['label'].sum():,} includes seen |'
+                    f' {self.unseen_data['label'].sum():,} includes left)')
+        if self.n_seen >= self.n_total:
+            logger.info('Computed next batch size: 0 (reached end of dataset)')
+            return 0
+
+        if self.batch_strategy == BatchStrategy.STATIC:
+            batch_size = min(self.batch_size, self.n_total - self.n_seen)
+            logger.info(f'Computed next batch size: {batch_size:,} (static {self.batch_size:,})')
+            return batch_size
+
+        if self.batch_strategy == BatchStrategy.DYNAMIC:
+            if self.min_batch_incl > 0:
+                remaining_includes = np.argwhere(self.unseen_data
+                                                 .sort_values(by='order')['label']
+                                                 .cumsum() > self.min_batch_incl)
+                target = remaining_includes.min() if len(remaining_includes) > 0 else self.n_unseen
+                logger.info(f'Computed target batch size: {target:,} (adaptive min. num. includes)')
+            else:
+                target = int(self.n_seen + (self.n_seen * self.growth_rate))
+                logger.info(f'Computed target batch size: {target:,} (adaptive growth_rate @ {self.growth_rate})')
+
+            batch_size = min(self.max_batch_size, max(self.min_batch_size, target))
+            logger.info(f'Computed next batch size: {batch_size:,} '
+                        f'(adaptive [{self.min_batch_size:,}, {self.max_batch_size:,}])')
+            return batch_size
+
+        raise AttributeError('Batch strategy not supported')
+
+    def get_random_unseen_sample(self) -> list[int]:
+        logger.info('Preparing random sample')
+        idxs = self.unseen_data.index.tolist()
+        random.shuffle(idxs)
+        batch_size = self.get_next_batch_size()
+        if self.last_batch == 0:
+            while self.df.loc[idxs[:batch_size]]['label'].sum() < (self.min_batch_incl or 2):
+                logger.debug('Initial reshuffle to get some positives in the first batch')
+                random.shuffle(idxs)
+
+        return idxs[:batch_size]
+
+    def prepare_next_batch(self) -> None:
         if self.n_seen >= self.n_total:
             raise StopIteration
 
-        idxs = self.ordering[self.n_seen:self.n_seen + batch_size].tolist()
-        batch = self.df.iloc[idxs]
-        self.n_seen += batch_size
-        return idxs, batch['labels'].to_list(), batch['texts'].to_list()
+        # Handle random batch injection (or initial batch)
+        if (self.last_batch == 0
+                or (self.inject_random_batch_every > 0
+                    and (self.last_batch % self.inject_random_batch_every) == 0)):
+            idxs = self.get_random_unseen_sample()
+            # add our batch data to the table
+            batch_i = self.last_batch + 1
+            n_seen = self.n_seen
+            self.df.loc[self.df.iloc[idxs].index, 'order'] = np.arange(len(idxs)) + n_seen
+            self.df.loc[self.df.iloc[idxs].index, 'batch'] = batch_i
+            self.df.loc[self.df.iloc[idxs].index, 'random'] = True
+            self.df[f'scores_batch_{batch_i}'] = -1
 
-    def get_seen_data(self):
-        return self.df.iloc[self.ordering[:self.n_seen]]
+            # immediately continue with next batch
+            self.prepare_next_batch()
 
-    def register_predictions(self, scores: np.ndarray[tuple[int], np.dtype[np.int_]]) -> None:
-        logger.debug(f'Registering predictions for {scores.shape} scores in {self.ordering[self.n_seen:].shape}')
+    def register_predictions(self, scores: np.ndarray[tuple[int], np.dtype[np.float64]]) -> None:
         if len(scores) == 0:
+            logger.warning('Tried to register predictions but scores are empty')
             return
-        if len(scores) != self.n_unseen:
-            raise AttributeError('Prediction scores do not match number of remaining unseen documents.')
 
-        self.df.loc[self.df.iloc[self.ordering[self.n_seen:]].index, 'scores'] = scores
-        self.ordering[self.n_seen:] = self.ordering[(-scores).argsort() + self.n_seen]
+        # fetch numbers here to avoid side effects later
+        batch_i = self.last_batch + 1
+        n_seen = self.n_seen
+        logger.info(f'Registering predictions for {scores.shape} records as batch {batch_i}')
+
+        batch_size = self.get_next_batch_size()
+
+        if len(scores) == self.n_unseen:
+            self.df.loc[self.unseen_data.index, f'scores_batch_{batch_i}'] = scores
+        elif len(scores) == self.n_total:
+            self.df[f'scores_batch_{batch_i}'] = scores
+        else:
+            raise AttributeError('Number of prediction scores do not match number of '
+                                 'all or remaining unseen documents.')
+        self.df.fillna({f'scores_batch_{batch_i}': -1}, inplace=True)
+        ordering = (-self.unseen_data[f'scores_batch_{batch_i}']).argsort()
+        self.df.loc[ordering.index, 'order'] = ordering + n_seen
+        idxs = ordering.sort_values().index.to_list()[:batch_size]
+
+        self.df.loc[idxs, 'batch'] = batch_i
+        self.df.loc[idxs, 'random'] = False
+
+    def store(self, target: Path) -> None:
+        if target.suffix == '.csv':
+            self.df.sort_values(by='order').to_csv(target, index=False, float_format='%1.6f')
+        elif target.suffix == 'arrow' or target.suffix == '.feather':
+            self.df.sort_values(by='order').to_feather(target)
+        else:
+            raise AttributeError(f'Unsupported file type {target.suffix}')

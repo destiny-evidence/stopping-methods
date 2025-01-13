@@ -21,14 +21,14 @@ class Tracker:
 
         base_entry = {
             'dataset': dataset.KEY,
-            'ranker': model.KEY,
+            'ranker': model.key,
             'batch_i': batch_i,
             'batch_idxs': batch_idxs,
             'n_total': dataset.n_total,
             'n_seen': dataset.n_seen,
             'n_unseen': dataset.n_unseen,
             'n_incl': dataset.n_incl,
-            'n_incl_seen': dataset.get_seen_data()['labels'].sum(),
+            'n_incl_seen': dataset.seen_data['labels'].sum(),
             'n_incl_batch': batch['labels'].sum(),
             'n_records_batch': batch.shape[0],
         }

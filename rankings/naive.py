@@ -15,11 +15,6 @@ from shared.ranking import AbstractRanker
 
 logger = logging.getLogger('naive rank')
 
-logger.debug('Loading NLTK data...')
-nltk.download('stopwords')
-nltk.download('punkt')
-nltk.download('punkt_tab')
-
 type Variant = Literal['SVM', 'SGD']
 
 
@@ -36,6 +31,7 @@ class NaiveRankings(AbstractRanker):
                          train_on_new_only=train_on_new_only,
                          train_from_scratch=train_from_scratch,
                          **kwargs)
+
         self.variant = variant
 
         stopwords = sw.words('english')
@@ -57,7 +53,7 @@ class NaiveRankings(AbstractRanker):
     def train(self):
         seen = self.dataset.get_seen_data()
         x = self.vectors[seen.index]
-        y = seen['labels']
+        y = seen['label']
 
         if self.variant == 'SVM':
             # class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y), y=y)
