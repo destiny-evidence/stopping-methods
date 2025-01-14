@@ -90,7 +90,7 @@ class SVMRanking(AbstractRanker):
             self.model.fit(x, y)
 
     def predict(self, predict_on_all: bool = True) -> np.ndarray:
-        idxs = (self.dataset.unseen_data if predict_on_all else self.dataset.df).index
+        idxs = (self.dataset.unseen_data if not predict_on_all else self.dataset.df).index
 
         if len(idxs) == 0:
             return np.array([])
