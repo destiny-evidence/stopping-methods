@@ -5,6 +5,7 @@ We will then combine these metadatasets into a single metadataset.
 To avoid issues with merging, each individual metadataset should contain the following fields: 
 
 * name | Type: String. Description: File name of the dataset. Example: "heart_dataset.csv".
+* source | Type: String. Description: Where the dataset came from. If not from a 'collection' of datasets (e.g., CLEF) give the title of the paper from which they are derived. Examples: "CLEF datasets", "FASTREAD datasets", "CAMARADES datasets", "Screening Smarter, Not Harder: A Comparative Analysis of Machine Learning Screening Algorithms and Heuristic Stopping Criteria for Systematic Reviews in Educational Research"
 * evidence_synthesis_type | Type: String. Description: The type of review conducted. Must be one of the following predefined options:
 	•	"Systematic Review"
 	•	"Evidence Map"
