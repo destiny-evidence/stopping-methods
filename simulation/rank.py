@@ -1,0 +1,117 @@
+import logging
+from typing import Generator, Iterable
+
+import typer
+
+from rankings.naive import SVMRanker, SDGRanker, RegressionRanker
+from shared.config import settings
+from shared.dataset import BatchStrategy
+from shared.ranking import AbstractRanker
+from simulation.iterators import it_datasets
+
+logger = logging.getLogger('precompute ranks')
+
+app = typer.Typer()
+
+
+def it_rankers(use_svm: bool = False,
+               use_sdg: bool = False,
+               use_reg: bool = False,
+               use_fine_tuning: bool = False) -> Generator[AbstractRanker, None, None]:
+    if use_reg or use_sdg or use_svm:
+        import nltk
+        logger.debug('Loading NLTK data...')
+        nltk.download('stopwords')
+        nltk.download('punkt')
+        nltk.download('punkt_tab')
+
+    if use_reg:
+        yield RegressionRanker()
+        yield RegressionRanker(model_params={'solver': 'newton-cholesky'})
+        yield RegressionRanker(ngram_range=(1, 1), max_features=5000)
+
+        if use_fine_tuning:
+            yield SDGRanker(tuning=True)
+
+    if use_sdg:
+        yield SDGRanker()
+        yield SDGRanker(ngram_range=(1, 1), max_features=5000)
+
+        if use_fine_tuning:
+            yield SDGRanker(tuning=True)
+
+    if use_svm:
+        yield SVMRanker(model_params={'C': 1.0, 'kernel': 'linear'})
+        yield SVMRanker(model_params={'C': 1.0, 'kernel': 'rbf', 'gamma': 'scale'})
+        yield SVMRanker(model_params={'C': 1.0, 'kernel': 'linear'},
+                        ngram_range=(1, 1), max_features=5000)
+
+        if use_fine_tuning:
+            yield SVMRanker(tuning=True)
+
+
+@app.command()
+def produce_rankings(
+        use_svm: bool = False,
+        use_sdg: bool = False,
+        use_reg: bool = False,
+        use_fine_tuning: bool = False,
+        num_repeats: int = 3,
+        batch_strategy: BatchStrategy = BatchStrategy.DYNAMIC,
+        stat_batch_size: int = 100,
+        dyn_min_batch_incl: int = 5,
+        dyn_min_batch_size: int = 100,
+        dyn_growth_rate: float = 0.5,
+        dyn_max_batch_size: int = 600,
+        inject_random_batch_every: int = 0,
+        predict_on_all: bool = True,  # if false, will only predict on unseen documents
+):
+    logger.info(f'Data path: {settings.DATA_PATH}')
+    settings.ranking_data_path.mkdir(parents=True, exist_ok=True)
+
+    for repeat in range(1, num_repeats + 1):
+        logger.info(f'Running for repeat cycle {repeat}...')
+        for dataset in it_datasets():
+            logger.info(f'Running simulation on dataset: {dataset.KEY}')
+            logger.info(f'  n_incl={dataset.n_incl}, n_total={dataset.n_total} '
+                        f'=> {dataset.n_incl / dataset.n_total:.2%}')
+
+            # override batch setup
+            dataset.batch_strategy = batch_strategy
+            dataset.batch_size = stat_batch_size
+            dataset.min_batch_incl = dyn_min_batch_incl
+            dataset.min_batch_size = dyn_min_batch_size
+            dataset.growth_rate = dyn_growth_rate
+            dataset.max_batch_size = dyn_max_batch_size
+            dataset.inject_random_batch_every = inject_random_batch_every
+
+            logger.info(f'Running setups...')
+            for ranker in it_rankers(use_svm=use_svm, use_reg=use_reg, use_sdg=use_sdg,
+                                     use_fine_tuning=use_fine_tuning):
+                ranker.attach_dataset(dataset)
+                target_key = f'{dataset.KEY}-{repeat}-{ranker.key}'
+                logger.info(f'Running ranker {target_key}...')
+                logger.debug(f'Checking for {settings.ranking_data_path / f'{target_key}.feather'}')
+                if ((settings.ranking_data_path / f'{target_key}.feather').exists()
+                        or (settings.ranking_data_path / f'{target_key}.csv').exists()):
+                    logger.info(f' > Skipping {target_key}; simulation already exists')
+                    continue
+
+                ranker.init()
+
+                while dataset.has_unseen:
+                    logger.info(f'Running for batch {dataset.last_batch}...')
+                    dataset.prepare_next_batch()
+                    ranker.train()
+                    predictions = ranker.predict(predict_on_all=predict_on_all)
+                    dataset.register_predictions(scores=predictions)
+
+                # persist to disk and reset
+                logger.info(f'Persisting to disk for {target_key}...')
+                ranker.store_info(settings.ranking_data_path / f'{target_key}.json',
+                                  extra={
+                                      'repeat': repeat,
+                                  })
+                dataset.store(settings.ranking_data_path / f'{target_key}.feather')
+                dataset.store(settings.ranking_data_path / f'{target_key}.csv')
+                dataset.reset()

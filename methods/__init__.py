@@ -1,6 +1,6 @@
 from .buscar import Buscar
-from .alison import Alison
 from .heuristic_fractions import HeuristicFraction
-from .heuristic_fixed_N import HeuristicFixedN
+from .heuristic_fixed import HeuristicFixed
+from .curve_fitting import CurveFitting
 
-__all__ = ['Buscar', 'Alison', 'HeuristicFraction', 'HeuristicFixedN']
+__all__ = ['Buscar', 'CurveFitting', 'HeuristicFraction', 'HeuristicFixedN']

@@ -1,10 +1,15 @@
+import json
 import logging
 import random
 from enum import Enum
 from pathlib import Path
+from typing import Generator
+from itertools import chain, batched
 
 import numpy as np
 import pandas as pd
+
+from shared.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -183,3 +188,95 @@ class Dataset:
             self.df.sort_values(by='order').to_feather(target)
         else:
             raise AttributeError(f'Unsupported file type {target.suffix}')
+
+
+class RankedDataset:
+    def __init__(self, ranking_info_fp: Path):
+        self.ranking_fp = settings.ranking_data_path / f'{ranking_info_fp.with_suffix('')}.feather'
+
+        logger.info(f'Ranking from: {self.ranking_fp}')
+        logger.debug(f'Info from {ranking_info_fp}')
+
+        with open(ranking_info_fp, 'r') as f:
+            self.info = json.load(f)
+        self.ranking = pd.read_feather(self.ranking_fp)
+
+    @property
+    def n_total(self) -> int:
+        return self.ranking.shape[0]
+
+    @property
+    def n_incl(self) -> int:
+        return self.ranking['label'].sum()
+
+    @property
+    def n_batches(self) -> int:
+        return len(self.ranking['batch'].unique())
+
+    @property
+    def batch_sizes(self) -> int:
+        return self.ranking['batch'].value_counts()
+
+    @property
+    def inclusion_rate(self) -> float:
+        return self.n_incl / self.n_total
+
+    @property
+    def dataset(self) -> str:
+        return self.info['dataset']
+
+    @property
+    def repeat(self) -> str:
+        return self.info['repeat']
+
+    @property
+    def ranker(self) -> str:
+        return self.info['ranker']
+
+    @property
+    def __len__(self):
+        return self.n_total
+
+    @property
+    def data(self) -> tuple[list[int], list[int], list[float], list[bool]]:
+        batches = []
+        scores = []
+        labels = []
+        is_prioritised = []
+        for bi, b_labels, b_scores, b_prio in self.it_sim_batches():
+            scores += b_scores
+            labels += b_labels
+            is_prioritised += b_prio
+            batches += [bi] * len(b_scores)
+        return batches, labels, scores, is_prioritised
+
+    def it_sim_batches(self) -> Generator[tuple[int, list[int], list[float], list[bool]], None, None]:
+        for bi, batch in self.ranking.groupby('batch'):
+            batch = batch.sort_values('order')
+            yield bi, batch['label'].tolist(), batch[f'scores_batch_{bi}'].tolist(), (~batch['random']).tolist()
+
+    def it_cum_sim_batches(self) -> Generator[tuple[int, list[int], list[float], list[bool]], None, None]:
+        scores = np.array([])
+        labels = np.array([])
+        is_prioritised = np.array([])
+        for bi, b_scores, b_labels, b_prio in self.it_sim_batches():
+            scores = np.concatenate(scores, b_scores)
+            labels = np.concatenate(labels, b_labels)
+            is_prioritised = np.concatenate(is_prioritised, b_prio)
+            yield bi, labels, scores, is_prioritised
+
+    def it_batches(self, batch_size: int) -> Generator[tuple[int, list[int], list[float], list[bool]], None, None]:
+        for batches, labels, scores, is_prioritised in zip(*[batched(pt, batch_size) for pt in self.data]):
+            yield batches, labels, scores, is_prioritised
+
+    def it_cum_batches(self, batch_size: int) -> Generator[tuple[np.array, np.array, np.array, np.array], None, None]:
+        batches = []
+        scores = []
+        labels = []
+        is_prioritised = []
+        for bis, b_labels, b_scores, b_prio in zip(*[batched(pt, batch_size) for pt in self.data]):
+            batches += bis
+            scores += b_scores
+            labels += b_labels
+            is_prioritised += b_prio
+            yield np.array(batches), np.array(labels), np.array(scores), np.array(is_prioritised)

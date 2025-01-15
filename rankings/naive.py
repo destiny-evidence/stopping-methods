@@ -1,81 +1,219 @@
 import logging
-from typing import Any, Literal
+from typing import Any, Type
 
 import nltk
 import numpy as np
 from nltk.corpus import stopwords as sw
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import SGDClassifier
+from sklearn.linear_model import SGDClassifier, LogisticRegression
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.svm import SVC
-from sklearn.utils import compute_class_weight
 
-from shared.dataset import Dataset
-from shared.ranking import AbstractRanker
+from shared.ranking import AbstractRanker, TrainMode
 
-logger = logging.getLogger('naive rank')
-
-type Variant = Literal['SVM', 'SGD']
+logger = logging.getLogger('rank-simple')
 
 
-class NaiveRankings(AbstractRanker):
-    KEY: str = 'NAIVE'
-
+# class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y), y=y)
+class _SimpleRanking(AbstractRanker):
     def __init__(self,
-                 dataset: Dataset,
-                 train_on_new_only: bool = False,
-                 train_from_scratch: bool = True,
-                 variant: Variant = 'SGD',
+                 name: str,
+                 BaseModel: Type[SGDClassifier| SVC| LogisticRegression],
+                 model_params: dict[str, Any],
+                 train_mode: TrainMode = TrainMode.RESET,
+                 tuning: bool = False,
+                 scoring: str | None = None,
+                 tuning_params: dict[str, Any] | None = None,
+                 max_features: int = 75000,
+                 ngram_range: tuple[int, int] = (1, 3),
+                 min_df: int | float = 3,
                  **kwargs: dict[str, Any]):
-        super().__init__(dataset=dataset,
-                         train_on_new_only=train_on_new_only,
-                         train_from_scratch=train_from_scratch,
-                         **kwargs)
+        super().__init__(train_mode=train_mode, tuning=tuning, **kwargs)
+        self.model_params = model_params
+        self.name = name
+        self.BaseModel = BaseModel
+        self.scoring = scoring
+        self.tuning_params = tuning_params
 
-        self.variant = variant
+        self.vectorizer = TfidfVectorizer(ngram_range=ngram_range, max_features=max_features, min_df=min_df,
+                                          strip_accents='unicode')
+        self.texts = None
+        self.vectors = None
+        self.model = None
 
-        stopwords = sw.words('english')
+    @property
+    def key(self):
+        key = (f'{self.name}'
+               f'-{self.train_mode}'
+               f'-{self.dataset.batch_strategy}'
+               f'-{self.vectorizer.ngram_range[0]}_{self.vectorizer.ngram_range[1]}'
+               f'-{self.vectorizer.max_features}')
+        if self.tuning:
+            key = f'{key}-tuned'
+        return f'{key}-{self.get_hash()}'
 
+    def clear(self):
+        self.texts = None
+        self.vectors = None
+        self.model = None
+        self.vectorizer = TfidfVectorizer(ngram_range=self.vectorizer.ngram_range,
+                                          max_features=self.vectorizer.max_features,
+                                          min_df=self.vectorizer.min_df,
+                                          strip_accents='unicode')
+
+    def init(self) -> None:
         logger.info('Preprocess texts')
-        texts = dataset.texts
+        stopwords = sw.words('english')
+        texts = self.dataset.texts
         self.texts = [
             ' '.join([tok
                       for tok in nltk.word_tokenize(text)
                       if tok not in stopwords])
             for text in texts
         ]
-
-        self.vectorizer = TfidfVectorizer(ngram_range=(1, 3), max_features=75000, min_df=3, strip_accents='unicode')
         self.vectors = self.vectorizer.fit_transform(self.texts)
 
-        self.model = None
+    def _init_model(self):
+        if self.tuning:
+            clf = self.BaseModel(**self.model_params)
+            self.model = GridSearchCV(estimator=clf, param_grid=self.tuning_params, scoring=self.scoring,
+                                      cv=StratifiedKFold(n_splits=2), refit=True)
+        else:
+            self.model = self.BaseModel(**self.model_params)
 
     def train(self):
-        seen = self.dataset.get_seen_data()
+        seen = self.dataset.seen_data
         x = self.vectors[seen.index]
         y = seen['label']
 
-        if self.variant == 'SVM':
-            # class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y), y=y)
-            self.model = SVC(C=1.0, kernel='linear', degree=3, gamma='auto', class_weight='balanced')
+        logger.debug(f'Fitting on {y.shape[0]:,} samples ({y.sum():,} of which included)')
 
-        elif self.variant == 'SGD':
-            model = SGDClassifier(class_weight='balanced', loss='log_loss')
-            parameters = {'alpha': 10.0 ** -np.arange(1, 7)}
-            self.model = GridSearchCV(model, parameters, scoring='roc_auc', cv=StratifiedKFold(n_splits=2))
+        if self.train_mode == TrainMode.NEW:
+            raise NotImplementedError()
+        elif self.train_mode == TrainMode.FULL:
+            raise NotImplementedError()
+        elif self.train_mode == TrainMode.RESET:
+            self._init_model()
+            self.model.fit(x, y)
 
-        else:
-            raise NotImplementedError(f'Unknown variant {self.variant}')
+    def predict(self, predict_on_all: bool = True) -> np.ndarray:
+        idxs = (self.dataset.unseen_data if not predict_on_all else self.dataset.df).index
 
-        self.model.fit(x, y)
-
-    def predict(self) -> np.ndarray:
-        unseen = self.dataset.df.iloc[self.dataset.ordering[self.dataset.n_seen:]]
-        if len(unseen) == 0:
+        if len(idxs) == 0:
             return np.array([])
 
-        y_preds = self.model.predict_proba(self.vectors[unseen.index])
+        y_preds = self.model.predict_proba(self.vectors[idxs])
         return y_preds[:, 1]
 
-    def get_params(self) -> dict[str, Any]:
-        return {'variant': self.variant, **self.model.get_params()}
+    def _get_params(self, preview: bool = True) -> dict[str, Any]:
+        base = {
+            'ngram_range': str(self.vectorizer.ngram_range),
+            'max_features': self.vectorizer.max_features,
+            'min_df': self.vectorizer.min_df,
+            **self.model_params
+        }
+        if preview:
+            return base
+        if hasattr(self.model, 'best_estimator_'):
+            return {
+                **base,
+                **{f'{self.name}-{k}': getattr(self.model.best_estimator_, k) for k in self.model_params.keys()}
+            }
+        return {
+            **base,
+            **{f'{self.name}-{k}': getattr(self.model, k) for k in self.model_params.keys()}
+        }
+
+
+class SVMRanker(_SimpleRanking):
+    def __init__(self,
+                 train_mode: TrainMode = TrainMode.RESET,
+                 tuning: bool = False,
+                 model_params: dict[str, Any] | None = None,
+                 max_features: int = 75000,
+                 ngram_range: tuple[int, int] = (1, 3),
+                 min_df: int | float = 3,
+                 **kwargs: dict[str, Any]):
+        super().__init__(
+            name='sdg',
+            BaseModel=SVC,
+            model_params={
+                'loss': 'log_loss',
+                'class_weight': 'balanced',
+                'penalty': 'l2',
+                'max_iter': 1000,
+                **(model_params or {})
+            },
+            train_mode=train_mode,
+            tuning=tuning,
+            tuning_params={
+                'C': [1, 10],
+                'gamma': [0.001, 0.01, 1],  # , 'auto', 'scale'
+                'kernel': ['linear', 'rbf']  # , 'sigmoid'
+            },
+            max_features=max_features,
+            ngram_range=ngram_range,
+            min_df=min_df,
+            **kwargs)
+
+class SDGRanker(_SimpleRanking):
+    def __init__(self,
+                 train_mode: TrainMode = TrainMode.RESET,
+                 tuning: bool = False,
+                 model_params: dict[str, Any] | None = None,
+                 max_features: int = 75000,
+                 ngram_range: tuple[int, int] = (1, 3),
+                 min_df: int | float = 3,
+                 **kwargs: dict[str, Any]):
+        super().__init__(
+            name='sdg',
+            BaseModel=SGDClassifier,
+            model_params={
+                'class_weight': 'balanced',
+                'loss': 'log_loss',
+                'max_iter': 1000,
+                **(model_params or {})
+            },
+            train_mode=train_mode,
+            tuning=tuning,
+            tuning_params={
+                'alpha': 10.0 ** -np.arange(1, 7)
+            },
+            scoring='roc_auc',
+            max_features=max_features,
+            ngram_range=ngram_range,
+            min_df=min_df,
+            **kwargs
+        )
+
+class RegressionRanker(_SimpleRanking):
+    def __init__(self,
+                 train_mode: TrainMode = TrainMode.RESET,
+                 tuning: bool = False,
+                 model_params: dict[str, Any] | None = None,
+                 max_features: int = 75000,
+                 ngram_range: tuple[int, int] = (1, 3),
+                 min_df: int | float = 3,
+                 **kwargs: dict[str, Any]):
+        super().__init__(
+            name='logreg',
+            BaseModel=LogisticRegression,
+            model_params={
+                'class_weight': 'balanced',
+                'tol': 0.0001,
+                'C': 1.0,
+                'solver': 'lbfgs',
+                'max_iter': 100,
+                **(model_params or {})
+            },
+            train_mode=train_mode,
+            tuning=tuning,
+            tuning_params={
+                'solver': ['newton-cholesky', 'saga', 'liblinear', 'lbfgs']
+            },
+            scoring='roc_auc',
+            max_features=max_features,
+            ngram_range=ngram_range,
+            min_df=min_df,
+            **kwargs
+        )

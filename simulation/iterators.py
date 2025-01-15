@@ -1,7 +1,7 @@
 from typing import Generator
 
 from shared.collection import AbstractCollection
-from shared.dataset import Dataset
+from shared.dataset import Dataset, RankedDataset
 import datasets
 import methods
 import rankings
@@ -24,11 +24,11 @@ def it_datasets() -> Generator[Dataset, None, None]:
             yield dataset
 
 
-def it_rankers(dataset: Dataset) -> Generator[AbstractRanker, None, None]:
-    for Ranker in map(rankings.__dict__.get, rankings.__all__):
-        yield Ranker(dataset)
+# def it_rankers() -> Generator[AbstractRanker, None, None]:
+#     for Ranker in map(rankings.__dict__.get, rankings.__all__):
+#         yield Ranker()
 
 
-def it_methods(dataset: Dataset) -> Generator[AbstractMethod, None, None]:
+def it_methods(dataset: RankedDataset) -> Generator[AbstractMethod, None, None]:
     for Method in map(methods.__dict__.get, methods.__all__):
         yield Method(dataset)

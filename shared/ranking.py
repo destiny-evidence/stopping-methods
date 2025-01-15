@@ -18,7 +18,6 @@ class TrainMode(str, Enum):
 
 class AbstractRanker(ABC):
     def __init__(self,
-                 dataset: Dataset,
                  train_mode: TrainMode,
                  tuning: bool = True,
                  **kwargs: dict[str, Any]):
@@ -31,9 +30,9 @@ class AbstractRanker(ABC):
         :param kwargs:
         """
         super().__init__(**kwargs)
-        self.dataset = dataset
         self.train_mode = train_mode
         self.tuning = tuning
+        self.dataset = None
 
     @property
     @abstractmethod
@@ -56,20 +55,28 @@ class AbstractRanker(ABC):
     def _get_params(self, preview: bool = True) -> dict[str, Any]:
         raise NotImplementedError()
 
+    @abstractmethod
+    def clear(self):
+        raise NotImplementedError()
+
+    def attach_dataset(self, dataset: Dataset) -> None:
+        self.clear()
+        self.dataset = dataset
+
     def assembled_params(self, preview: bool = True) -> dict[str, Any]:
         return {
             'ranker': self.__class__.__name__,
             'train_mode': self.train_mode,
             'tuning': self.tuning,
             'dataset': self.dataset.KEY,
-            'batch_strategy': self.dataset.batch_strategy,
-            'stat_batch_size': self.dataset.batch_size,
-            'dyn_min_batch_incl': self.dataset.min_batch_incl,
-            'dyn_min_batch_size': self.dataset.min_batch_size,
-            'dyn_growth_rate': self.dataset.growth_rate,
-            'dyn_max_batch_size': self.dataset.max_batch_size,
-            'inject_random_batch_every': self.dataset.inject_random_batch_every,
-            **self._get_params(preview=preview)
+            'batch-strategy': self.dataset.batch_strategy,
+            'batch-stat_batch_size': self.dataset.batch_size,
+            'batch-dyn_min_batch_incl': self.dataset.min_batch_incl,
+            'batch-dyn_min_batch_size': self.dataset.min_batch_size,
+            'batch-dyn_growth_rate': self.dataset.growth_rate,
+            'batch-dyn_max_batch_size': self.dataset.max_batch_size,
+            'batch-inject_random_batch_every': self.dataset.inject_random_batch_every,
+            **{f'model-{k}': v for k, v in self._get_params(preview=preview).items()},
         }
 
     def get_params(self, preview: bool = True) -> dict[str, Any]:
@@ -77,10 +84,10 @@ class AbstractRanker(ABC):
             'key': self.key,
             **self.assembled_params(preview=preview),
         }
+
     def get_hash(self) -> str:
         return sha1(json.dumps(self.assembled_params(preview=True), sort_keys=True).encode('utf-8')).hexdigest()
 
-    def store_info(self, target_dir: Path, extra: dict[str, Any] | None = None) -> None:
-        target_dir.mkdir(parents=True, exist_ok=True)
-        with open(target_dir / f'{self.key}.json', 'w') as f:
+    def store_info(self, target_path: Path, extra: dict[str, Any] | None = None) -> None:
+        with open(target_path, 'w') as f:
             json.dump({**self.get_params(preview=False), **(extra or {})}, fp=f, indent=2)
