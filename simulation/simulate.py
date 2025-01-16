@@ -1,12 +1,11 @@
 import logging
 
-import numpy as np
 import pandas as pd
 import typer
 
 from shared.config import settings
 from shared.dataset import RankedDataset
-from simulation.iterators import it_methods
+from methods import it_methods
 
 logger = logging.getLogger('stopping')
 
@@ -21,7 +20,7 @@ def compute_stops(batch_size: int = 100):
     for ranking_info_fp in settings.ranking_data_path.glob('*.json'):
         dataset = RankedDataset(ranking_info_fp=ranking_info_fp)
 
-        ranking_fp = settings.ranking_data_path / f'{ranking_info_fp.with_suffix('')}.feather'
+        ranking_fp = f'{ranking_info_fp.with_suffix('')}.feather'
 
         logger.info(f'Ranking from: {ranking_fp}')
         logger.debug(f'Info from {ranking_info_fp}')
@@ -29,9 +28,11 @@ def compute_stops(batch_size: int = 100):
         for batch_i, (batches, labels, scores, is_prioritised) in enumerate(
                 dataset.it_cum_batches(batch_size=batch_size)
         ):
+            logger.info(f'Running batch {batch_i} ({len(batches)}/{len(dataset)})')
             base_entry = {
                 'dataset': dataset.dataset,
                 'ranker': dataset.ranker,
+                'sim_key': dataset.info['key'],
                 'batch_i': batch_i,
                 'n_total': dataset.n_total,
                 'n_seen': len(labels),
@@ -53,7 +54,7 @@ def compute_stops(batch_size: int = 100):
             }
 
             for method in it_methods(dataset=dataset):
-                logger.info(f'Running method {method.KEY}')
+                logger.debug(f'Running method {method.KEY}')
                 for paramset in method.parameter_options():
                     stop_result = method.compute(
                         list_of_labels=labels,

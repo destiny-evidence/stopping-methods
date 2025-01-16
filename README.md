@@ -1,5 +1,5 @@
 # Stopping methods for priority screening
-![logo](logo2.png)
+![logo](logo.png)
 
 
 Priority screening has gained popularity across all major systematic review tools.

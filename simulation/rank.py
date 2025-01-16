@@ -1,13 +1,13 @@
 import logging
-from typing import Generator, Iterable
+from typing import Generator
 
 import typer
 
-from rankings.naive import SVMRanker, SDGRanker, RegressionRanker
+from rankings.simple import SVMRanker, SDGRanker, RegressionRanker
 from shared.config import settings
 from shared.dataset import BatchStrategy
 from shared.ranking import AbstractRanker
-from simulation.iterators import it_datasets
+from datasets import it_datasets
 
 logger = logging.getLogger('precompute ranks')
 
@@ -26,27 +26,38 @@ def it_rankers(use_svm: bool = False,
         nltk.download('punkt_tab')
 
     if use_reg:
+        logger.info('Using regression model...')
         yield RegressionRanker()
-        yield RegressionRanker(model_params={'solver': 'newton-cholesky'})
+        # logger.info('Using regression with cholesky solver...')
+        # yield RegressionRanker(model_params={'solver': 'newton-cholesky'})
+        logger.info('Using regression with smaller input...')
         yield RegressionRanker(ngram_range=(1, 1), max_features=5000)
 
         if use_fine_tuning:
+            logger.info('Using regression with tuning...')
             yield SDGRanker(tuning=True)
 
     if use_sdg:
+        logger.info('Using SDG model...')
         yield SDGRanker()
+        logger.info('Using SDG model with smaller input...')
         yield SDGRanker(ngram_range=(1, 1), max_features=5000)
 
         if use_fine_tuning:
+            logger.info('Using SDG model with tuning...')
             yield SDGRanker(tuning=True)
 
     if use_svm:
+        logger.info('Using SVM model...')
         yield SVMRanker(model_params={'C': 1.0, 'kernel': 'linear'})
+        logger.info('Using SVM model with rbf...')
         yield SVMRanker(model_params={'C': 1.0, 'kernel': 'rbf', 'gamma': 'scale'})
+        logger.info('Using SVM model with smaller input...')
         yield SVMRanker(model_params={'C': 1.0, 'kernel': 'linear'},
                         ngram_range=(1, 1), max_features=5000)
 
         if use_fine_tuning:
+            logger.info('Using SVM model with tuning...')
             yield SVMRanker(tuning=True)
 
 
@@ -69,25 +80,25 @@ def produce_rankings(
     logger.info(f'Data path: {settings.DATA_PATH}')
     settings.ranking_data_path.mkdir(parents=True, exist_ok=True)
 
-    for repeat in range(1, num_repeats + 1):
-        logger.info(f'Running for repeat cycle {repeat}...')
-        for dataset in it_datasets():
-            logger.info(f'Running simulation on dataset: {dataset.KEY}')
-            logger.info(f'  n_incl={dataset.n_incl}, n_total={dataset.n_total} '
-                        f'=> {dataset.n_incl / dataset.n_total:.2%}')
+    for dataset in it_datasets():
+        logger.info(f'Running simulation on dataset: {dataset.KEY}')
+        logger.info(f'  n_incl={dataset.n_incl}, n_total={dataset.n_total} '
+                    f'=> {dataset.n_incl / dataset.n_total:.2%}')
 
-            # override batch setup
-            dataset.batch_strategy = batch_strategy
-            dataset.batch_size = stat_batch_size
-            dataset.min_batch_incl = dyn_min_batch_incl
-            dataset.min_batch_size = dyn_min_batch_size
-            dataset.growth_rate = dyn_growth_rate
-            dataset.max_batch_size = dyn_max_batch_size
-            dataset.inject_random_batch_every = inject_random_batch_every
+        # override batch setup
+        dataset.batch_strategy = batch_strategy
+        dataset.batch_size = stat_batch_size
+        dataset.min_batch_incl = dyn_min_batch_incl
+        dataset.min_batch_size = dyn_min_batch_size
+        dataset.growth_rate = dyn_growth_rate
+        dataset.max_batch_size = dyn_max_batch_size
+        dataset.inject_random_batch_every = inject_random_batch_every
 
-            logger.info(f'Running setups...')
-            for ranker in it_rankers(use_svm=use_svm, use_reg=use_reg, use_sdg=use_sdg,
-                                     use_fine_tuning=use_fine_tuning):
+        logger.info(f'Running setups...')
+        for ranker in it_rankers(use_svm=use_svm, use_reg=use_reg, use_sdg=use_sdg,
+                                 use_fine_tuning=use_fine_tuning):
+            for repeat in range(1, num_repeats + 1):
+                logger.info(f'Running for repeat cycle {repeat}...')
                 ranker.attach_dataset(dataset)
                 target_key = f'{dataset.KEY}-{repeat}-{ranker.key}'
                 logger.info(f'Running ranker {target_key}...')

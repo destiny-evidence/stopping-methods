@@ -18,7 +18,7 @@ logger = logging.getLogger('rank-simple')
 class _SimpleRanking(AbstractRanker):
     def __init__(self,
                  name: str,
-                 BaseModel: Type[SGDClassifier| SVC| LogisticRegression],
+                 BaseModel: Type[SGDClassifier | SVC | LogisticRegression],
                  model_params: dict[str, Any],
                  train_mode: TrainMode = TrainMode.RESET,
                  tuning: bool = False,
@@ -135,12 +135,15 @@ class SVMRanker(_SimpleRanking):
                  min_df: int | float = 3,
                  **kwargs: dict[str, Any]):
         super().__init__(
-            name='sdg',
+            name='svm',
             BaseModel=SVC,
             model_params={
-                'loss': 'log_loss',
+                'kernel': 'linear',
                 'class_weight': 'balanced',
-                'penalty': 'l2',
+                'degree': 3,
+                'gamma': 'auto',
+                'probability': True,
+                'C': 1.0,
                 'max_iter': 1000,
                 **(model_params or {})
             },
@@ -155,6 +158,7 @@ class SVMRanker(_SimpleRanking):
             ngram_range=ngram_range,
             min_df=min_df,
             **kwargs)
+
 
 class SDGRanker(_SimpleRanking):
     def __init__(self,
@@ -186,6 +190,7 @@ class SDGRanker(_SimpleRanking):
             **kwargs
         )
 
+
 class RegressionRanker(_SimpleRanking):
     def __init__(self,
                  train_mode: TrainMode = TrainMode.RESET,
@@ -209,7 +214,7 @@ class RegressionRanker(_SimpleRanking):
             train_mode=train_mode,
             tuning=tuning,
             tuning_params={
-                'solver': ['newton-cholesky', 'saga', 'liblinear', 'lbfgs']
+                'solver': ['saga', 'liblinear', 'lbfgs']  # 'newton-cholesky',
             },
             scoring='roc_auc',
             max_features=max_features,

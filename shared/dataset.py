@@ -192,7 +192,7 @@ class Dataset:
 
 class RankedDataset:
     def __init__(self, ranking_info_fp: Path):
-        self.ranking_fp = settings.ranking_data_path / f'{ranking_info_fp.with_suffix('')}.feather'
+        self.ranking_fp = f'{ranking_info_fp.with_suffix('')}.feather'
 
         logger.info(f'Ranking from: {self.ranking_fp}')
         logger.debug(f'Info from {ranking_info_fp}')
