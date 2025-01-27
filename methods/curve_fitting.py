@@ -20,10 +20,11 @@ class CurveFittingLogEntry(AbstractLogEntry):
     expected_includes: float
     expected_remaining: int
     predicted_recall: float
+    recall_target: float
 
 
 functions = {
-    'exp': lambda x, a, b: a * np.exp(-b * x),  # aka Alison
+    'exp': lambda x, a, b: a * np.exp(-b * x),
 }
 
 
@@ -61,4 +62,5 @@ class CurveFitting(AbstractMethod):
                                     expected_includes=a,
                                     predicted_recall=pred_recall,
                                     score=score,
-                                    expected_remaining=int(abs(a - labels.sum())))
+                                    expected_remaining=int(abs(a - labels.sum())),
+                                    recall_target=recall_target)

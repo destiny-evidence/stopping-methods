@@ -14,7 +14,7 @@ Array = np.ndarray[tuple[int], np.dtype[np.int64]]
 
 class BuscarLogEntry(AbstractLogEntry):
     KEY: str = 'BUSCAR'
-    recall_targe: float
+    recall_target: float
     bias: float
     confidence_level: float
 
@@ -47,7 +47,7 @@ class Buscar(AbstractMethod):
 
         return BuscarLogEntry(safe_to_stop=score is not None and score < 1 - confidence_level,
                               score=score,
-                              recall_targe=recall_target,
+                              recall_target=recall_target,
                               bias=bias,
                               confidence_level=confidence_level)
 
