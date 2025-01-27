@@ -1,4 +1,4 @@
-from typing import Generator, Any, TypedDict
+from typing import Generator, TypedDict
 
 import numpy as np
 import numpy.typing as npt
@@ -19,7 +19,7 @@ class BuscarLogEntry(AbstractLogEntry):
     confidence_level: float
 
 
-class BuscarParamset(TypedDict):
+class BuscarParamSet(TypedDict):
     recall_target: float
     bias: float
     confidence_level: float
@@ -28,11 +28,11 @@ class BuscarParamset(TypedDict):
 class Buscar(AbstractMethod):
     KEY: str = 'BUSCAR'
 
-    def parameter_options(self) -> Generator[BuscarParamset, None, None]:
+    def parameter_options(self) -> Generator[BuscarParamSet, None, None]:
         for target in [.8, .9, .95, .99]:
             for bias in [1., 2., 5., 10.]:
                 for conf in [0.95]:
-                    yield BuscarParamset(recall_target=target, bias=bias, confidence_level=conf)
+                    yield BuscarParamSet(recall_target=target, bias=bias, confidence_level=conf)
 
     def compute(self,
                 list_of_labels: IntList,

@@ -1,4 +1,6 @@
+import json
 import logging
+from hashlib import sha1
 
 import pandas as pd
 import typer
@@ -71,6 +73,8 @@ def compute_stops(
                         **base_entry,
                         'method': method.KEY,
                         'safe_to_stop': stop_result.safe_to_stop,
+                        'method-hash': (method.KEY + '-' +
+                                        sha1(json.dumps(paramset, sort_keys=True).encode('utf-8')).hexdigest()),
                         **{
                             f'method-{k}': v
                             for k, v in stop_result.model_dump().items()

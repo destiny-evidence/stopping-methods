@@ -32,6 +32,8 @@ class Record(BaseModel):
     doi: str | None = None
     # Keywords for the reference, separated by semi-colons. Example: "Keyword1; Keyword2; Keyword3". Missing Values: Represented as None.
     keywords: str | None = None
+    # Publication year
+    year: int | None = None
 
     # Label indicating inclusion/exclusion of the reference at title-abstract level screening. Values: {0, 1}.
     # Missing Values: Not allowed (must always have a value).

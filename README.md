@@ -9,6 +9,8 @@ We define stopping methods 'safe to stop' as:
 * a way to determine when a pre-defined recall is met
 * a way to quantify certainty
 
+For information how to execute the framework, check [`simulation/README.md`](simulation/README.md)
+
 ## Vision
 With this project, we aim to consolidate all available stopping methods and evaluation datasets into a single repository.
 We also define an standardised format to execute stopping methods in order to run rigorous evaluation.
