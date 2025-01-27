@@ -13,7 +13,11 @@ app = typer.Typer()
 
 
 @app.command()
-def compute_stops(batch_size: int = 100):
+def compute_stops(
+        batch_size: int = 100,  # Step size for computing stopping scores
+        methods: list[str] | None = None,  # Methods to compute scores for (empty=all)
+        results_file: str = 'results.csv',  # CSV Filename for results relative to result data dir
+) -> None:
     logger.info(f'Simulating stopping methods with batch size = {batch_size}')
     rows = []
 
@@ -28,10 +32,11 @@ def compute_stops(batch_size: int = 100):
         for batch_i, (batches, labels, scores, is_prioritised) in enumerate(
                 dataset.it_cum_batches(batch_size=batch_size)
         ):
-            logger.info(f'Running batch {batch_i} ({len(batches)}/{len(dataset)})')
+            logger.info(f'Running batch {batch_i} ({len(batches):,}/{dataset.n_total:,})')
             base_entry = {
                 'dataset': dataset.dataset,
                 'ranker': dataset.ranker,
+                'sim-rep': dataset.repeat,
                 'sim_key': dataset.info['key'],
                 'batch_i': batch_i,
                 'n_total': dataset.n_total,
@@ -53,7 +58,7 @@ def compute_stops(batch_size: int = 100):
                 }
             }
 
-            for method in it_methods(dataset=dataset):
+            for method in it_methods(dataset=dataset, methods=methods):
                 logger.debug(f'Running method {method.KEY}')
                 for paramset in method.parameter_options():
                     stop_result = method.compute(
@@ -73,7 +78,7 @@ def compute_stops(batch_size: int = 100):
                     })
 
         # Write entire log to disk after every dataset
-        pd.DataFrame(rows).to_csv(settings.result_data_path / 'results.csv', index=False)
+        pd.DataFrame(rows).to_csv(settings.result_data_path / results_file, index=False)
 
 
 if __name__ == '__main__':

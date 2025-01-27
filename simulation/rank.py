@@ -72,7 +72,7 @@ def produce_rankings(
         stat_batch_size: int = 100,
         dyn_min_batch_incl: int = 5,
         dyn_min_batch_size: int = 100,
-        dyn_growth_rate: float = 0.5,
+        dyn_growth_rate: float = 0.1,
         dyn_max_batch_size: int = 600,
         inject_random_batch_every: int = 0,
         predict_on_all: bool = True,  # if false, will only predict on unseen documents
