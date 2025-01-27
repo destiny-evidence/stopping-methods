@@ -1,6 +1,5 @@
 import logging
 
-import numpy as np
 import pandas as pd
 from shared.collection import AbstractCollection
 from shared.dataset import Dataset
@@ -24,7 +23,7 @@ class GenericCollection(AbstractCollection):
         for file in files:
             df = pd.read_csv(file).fillna('')
             yield Dataset(
-                key=f'generic-{file.stem}',
+                key=f'generic-csv-{file.stem}',
                 labels=[rec['label_abs'] for _, rec in df.iterrows()],
                 texts=[(rec['title'] or '') + ' ' + (rec['abstract'] or '') for _, rec in df.iterrows()]
             )

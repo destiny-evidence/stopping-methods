@@ -5,12 +5,12 @@ from shared.dataset import Dataset
 from .synergy import SynergyDataset
 from .generic_csv import GenericCollection as GenericCollectionCSV
 from .generic_jsonl import GenericCollection as GenericCollectionJSON
-
+from .generic_paired_ris import GenericPairedRISCollection
 # Collection = (SynergyDataset
 #               | GenericCollectionCSV
 #               | GenericCollectionJSON)
 
-__all__ = ['SynergyDataset', 'GenericCollectionCSV', 'GenericCollectionJSON']
+__all__ = ['SynergyDataset', 'GenericCollectionCSV', 'GenericCollectionJSON', 'GenericPairedRISCollection']
 
 
 def it_collections() -> Generator[AbstractCollection, None, None]:
