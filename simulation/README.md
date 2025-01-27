@@ -14,9 +14,24 @@ pip install -r requirements.txt
 
 ## Preparing datasets
 
+There are several generic readers to use.
+
+* CSV files in `data/generic-csv`, each file will be considered a dataset and should contain the columns
+  `title, abstract, label_abs`
+* jsonl files in `data/generic-jsonl`, each file will be considered a dataset, each row should be a valid dump of
+  `Record` as defined in `shared.dataset`
+* pairs of RIS files in `data/generic-paired-ris`, should have matching filenames, one ending in `_include.ris`, the
+  other in `_exclude.ris`. The framework will read and parse these files and automatically assign respective abstract
+  include labels
+
+Some other existing datasets are fetched on first use via
+
 ```bash
 export PYTHONPATH=$PYTHONPATH:/path/to/stopping-methods && python simulation/main.py prepare-datasets
 ```
+
+This will, for example, download the synergy dataset and store it locally and maybe fetch additional information to
+enrich the dataset from openalex.
 
 ## Pre-computing rankings
 
@@ -79,6 +94,7 @@ export PYTHONPATH=$PYTHONPATH:/path/to/stopping-methods && python simulation/mai
 ```
 
 Options:
+
 * `methods` list of methods to use (see respective class variables `KEY`); if empty, use all
 
 In general, each stopping method has a set of parameters that it will cycle through (see `parameter_options()` class
@@ -87,6 +103,7 @@ For each batch in a dataset, scores are computed for all methods and combination
 All this is written to a large csv file in the `data/results/` folder
 
 ### Structure of results.csv
+
 ```
 dataset  <- KEY of the dataset
 ranker   <- Ranking model classname
@@ -109,11 +126,13 @@ sampling-batch-*    <- hyperparameters of the batch sizing during ranking
 
 This is a very verbose and complete data structure which is also intimidating.
 The following lets you iterate over data from individual runs and methods
+
 ```python
 for (hash_ranker, hash_method, repeat), sub_df in df.groupby(['sim_key', 'method-hash', 'sim-rep']):
     simulation = sub_df.sort_values(by=['batch_i'])
     info = simulation.iloc[0]
-    print(f'Dataset "{info['dataset']}" ranked by "{info['ranker']}" stopped by "{info['method']}" (repeat {repeat} via {hash_method} / {hash_ranker})')
+    print(
+        f'Dataset "{info['dataset']}" ranked by "{info['ranker']}" stopped by "{info['method']}" (repeat {repeat} via {hash_method} / {hash_ranker})')
     for _, step in simulation.iterrows():
         recall = step['n_incl_seen'] / step['n_incl']
 
