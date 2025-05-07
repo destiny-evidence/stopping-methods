@@ -145,14 +145,12 @@ def evaluate_stopping_methods(csv_path):
 
 def print_results(results):
     """
-    Print the evaluation results in a readable format for each individual simulation
-    
-    Parameters:
-    -----------
+    Print the evaluation results 
+
     results : dict
         Dictionary containing evaluation results
     """
-    print("\n===== SYSTEMATIC REVIEW STOPPING METHOD EVALUATION =====\n")
+    print("\n===== STOPPING METHOD EVALUATION =====\n")
     
     for dataset in sorted(results.keys()):
         print(f"\nDATASET: {dataset}")
@@ -202,13 +200,10 @@ def main():
         logger.info("export PYTHONPATH=$PYTHONPATH:/path/to/stopping-methods && python simulation/main.py simulate-stopping --batch-size=100 --results_file results.csv")
         sys.exit(1)
     
-    # Evaluate stopping methods
     results = evaluate_stopping_methods(csv_path)
     
-    # Print results
     print_results(results)
     
-    # Return results for potential further analysis
     return results
 
 if __name__ == "__main__":
