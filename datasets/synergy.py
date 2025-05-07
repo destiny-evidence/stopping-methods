@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Generator, Any
 import httpx
 import pandas as pd
-import numpy as np
 
 from shared.collection import AbstractCollection
 from shared.dataset import Dataset, Record

@@ -124,5 +124,5 @@ def produce_rankings(
                                       'repeat': repeat,
                                   })
                 dataset.store(settings.ranking_data_path / f'{target_key}.feather')
-                dataset.store(settings.ranking_data_path / f'{target_key}.csv')
+                #dataset.store(settings.ranking_data_path / f'{target_key}.csv')
                 dataset.reset()
