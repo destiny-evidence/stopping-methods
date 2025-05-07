@@ -37,18 +37,27 @@ def evaluate_stopping_methods(csv_path):
         sim_key = combo['sim_key']
         sim_rep = int(combo['sim-rep'])
         method = combo['method']
-        recall_target = combo['method-recall_target']
-        confidence = combo['method-confidence_level']
+        recall_target = combo['method-recall_target'] if 'method-recall_target' in combo and not pd.isna(combo['method-recall_target']) else None
+        confidence = combo['method-confidence_level'] if 'method-confidence_level' in combo and not pd.isna(combo['method-confidence_level']) else None
         sim_id = f"sim-{sim_rep}"
 
-        combo_data = df[
-            (df['dataset'] == dataset) &
-            (df['sim_key'] == sim_key) &
-            (df['sim-rep'] == sim_rep) &
-            (df['method'] == method) &
-            (df['method-recall_target'] == recall_target) &
-            (df['method-confidence_level'] == confidence)
+        # Build filters dynamically based on available parameters
+        filters = [
+            (df['dataset'] == dataset),
+            (df['sim_key'] == sim_key),
+            (df['sim-rep'] == sim_rep),
+            (df['method'] == method)
         ]
+        
+        # Only add recall_target filter if it exists in the combo
+        if recall_target is not None:
+            filters.append(df['method-recall_target'] == recall_target)
+            
+        # Only add confidence filter if it exists in the combo
+        if confidence is not None:
+            filters.append(df['method-confidence_level'] == confidence)
+            
+        combo_data = df[pd.concat(filters, axis=1).all(axis=1)]
         
         # Sort by batch_i to ensure chronological order
         combo_data = combo_data.sort_values('batch_i')
