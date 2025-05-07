@@ -210,10 +210,11 @@ class Dataset:
         self.df.loc[idxs, 'random'] = False
 
     def store(self, target: Path) -> None:
+        df = self.df.sort_values(by='order').drop('text', axis='columns')
         if target.suffix == '.csv':
-            self.df.sort_values(by='order').to_csv(target, index=False, float_format='%1.6f')
+            df.to_csv(target, index=False, float_format='%1.6f')
         elif target.suffix == 'arrow' or target.suffix == '.feather':
-            self.df.sort_values(by='order').to_feather(target)
+            df.to_feather(target)
         else:
             raise AttributeError(f'Unsupported file type {target.suffix}')
 
