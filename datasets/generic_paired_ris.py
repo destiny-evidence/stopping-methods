@@ -28,8 +28,8 @@ class GenericPairedRISCollection(AbstractCollection):
 
         pairs = defaultdict(dict)
         for file in files:
-            incl = file.stem.lower().endswith('_include')
-            excl = file.stem.lower().endswith('_exclude')
+            incl = file.stem.lower().endswith('_includes')
+            excl = file.stem.lower().endswith('_excludes')
             if not incl and not excl:
                 logger.warning(f'Ignoring RIS file due to wrong naming convention: {file}')
                 continue
