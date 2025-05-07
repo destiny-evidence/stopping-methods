@@ -43,11 +43,8 @@ class Quant(AbstractMethod):
             )
         
         scores = np.array(list_of_model_scores)
-        labels = np.array(list_of_labels)
-        assert (scores <= 1).all() and (scores >= 0).all(), \
-            "Scores have to be probabilities to use Quant Rule."
         
-        annotated = labels == 1
+        annotated = np.array(is_prioritised, dtype=bool) # this was wrong
         unknown_ps = scores[~annotated].sum()
         known_ps = scores[annotated].sum()
         est_recall = known_ps / (known_ps + unknown_ps)
