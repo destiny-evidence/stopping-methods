@@ -68,6 +68,7 @@ def produce_rankings(
         use_reg: bool = False,
         use_fine_tuning: bool = False,
         num_repeats: int = 3,
+        num_random_init: int = 100,
         batch_strategy: BatchStrategy = BatchStrategy.DYNAMIC,
         stat_batch_size: int = 100,
         dyn_min_batch_incl: int = 5,
@@ -86,6 +87,7 @@ def produce_rankings(
                     f'=> {dataset.n_incl / dataset.n_total:.2%}')
 
         # override batch setup
+        dataset.num_random_init = num_random_init
         dataset.batch_strategy = batch_strategy
         dataset.batch_size = stat_batch_size
         dataset.min_batch_incl = dyn_min_batch_incl
@@ -124,5 +126,5 @@ def produce_rankings(
                                       'repeat': repeat,
                                   })
                 dataset.store(settings.ranking_data_path / f'{target_key}.feather')
-                #dataset.store(settings.ranking_data_path / f'{target_key}.csv')
+                # dataset.store(settings.ranking_data_path / f'{target_key}.csv')
                 dataset.reset()

@@ -51,6 +51,7 @@ class Dataset:
     def __init__(self,
                  key: str,
                  labels: list[int], texts: list[str],
+                 num_random_init: int = 100,
                  batch_strategy: BatchStrategy = BatchStrategy.STATIC,
                  stat_batch_size: int = 100,
                  dyn_min_batch_incl: int = 2,
@@ -65,6 +66,7 @@ class Dataset:
         self.df = pd.DataFrame()
         self.reset()
 
+        self.num_random_init = num_random_init
         self.batch_strategy = batch_strategy
         self.batch_size = stat_batch_size
         self.min_batch_incl = dyn_min_batch_incl
@@ -150,17 +152,26 @@ class Dataset:
 
         raise AttributeError('Batch strategy not supported')
 
-    def get_random_unseen_sample(self) -> list[int]:
+    def get_random_unseen_sample(self, sample_size: int | None = None) -> list[int]:
         logger.info('Preparing random sample')
         idxs = self.unseen_data.index.tolist()
         random.shuffle(idxs)
-        batch_size = self.get_next_batch_size()
+        batch_size = self.get_next_batch_size() if sample_size is None else sample_size
         if self.last_batch == 0:
-            while self.df.loc[idxs[:batch_size]]['label'].sum() < (self.min_batch_incl or 2):
-                logger.debug('Initial reshuffle to get some positives in the first batch')
-                random.shuffle(idxs)
+            min_incl = self.min_batch_incl or 2
+            num_incl = self.df.loc[idxs[:batch_size]]['label'].sum()
 
-        return idxs[:batch_size]
+            if self.unseen_data['label'].sum() < min_incl:
+                raise AssertionError('Not enough includes for initial random sample from unseen data!')
+
+            if num_incl < min_incl:
+                logger.warning('Initial sample did not have enough includes, going to inject some!')
+                incl_idxs = self.unseen_data[self.unseen_data['label'] == 1].index.tolist()[:min_incl-num_incl]
+                idxs = incl_idxs + idxs
+
+        idxs = idxs[:batch_size]
+        random.shuffle(idxs)
+        return idxs
 
     def prepare_next_batch(self) -> None:
         if self.n_seen >= self.n_total:
