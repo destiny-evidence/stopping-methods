@@ -166,7 +166,7 @@ class Dataset:
 
             if num_incl < min_incl:
                 logger.warning('Initial sample did not have enough includes, going to inject some!')
-                incl_idxs = self.unseen_data[self.unseen_data['label'] == 1].index.tolist()[:min_incl-num_incl]
+                incl_idxs = self.unseen_data[self.unseen_data['label'] == 1].index.tolist()[:min_incl - num_incl]
                 idxs = incl_idxs + idxs
 
         idxs = idxs[:batch_size]
@@ -181,7 +181,7 @@ class Dataset:
         if (self.last_batch == 0
                 or (self.inject_random_batch_every > 0
                     and (self.last_batch % self.inject_random_batch_every) == 0)):
-            idxs = self.get_random_unseen_sample()
+            idxs = self.get_random_unseen_sample(self.num_random_init if self.last_batch == 0 else None)
             # add our batch data to the table
             batch_i = self.last_batch + 1
             n_seen = self.n_seen
