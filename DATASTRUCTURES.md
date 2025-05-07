@@ -22,4 +22,29 @@ To avoid issues with merging, each individual metadataset should contain the fol
 * include_ratio_abs | Type: Float. Description: Proportion of included records based on abstract screening, calculated as: n_includes_abs/n_total. Missing values: Not allowed. 
 * include_ratio_ft | Type: Float. Description: Proportion of included records based on full-text screening, calculated as: calculated as: n_includes_abs/n_total. Missing values: NA. 
 
-See generic_json.py for datastructure for simulation dataset fields
+See shared/dataset.py for datastructure for simulation dataset fields (copied below for ease of reference) 
+
+Required variables: id, title, abstract, pubmed_id, openalex_id, doi, keywords, year, label_abs, label_ft: 
+
+    # A unique identifier for each reference within the dataset. Example: 1, 2, 3, 4, 5. Missing Values: Not allowed
+    id: int
+    # Title of the reference. Missing Values: Represented as None.
+    title: str | None = None
+    # Abstract of the reference. Missing Values: Represented as  None.
+    abstract: str | None = None
+    # PubMed ID of the reference (if available). Missing Values: Represented as None.
+    pubmed_id: str | None = None
+    # OpenAlex identifier of the reference (if available). Missing values: Represented as None.
+    openalex_id: str | None = None
+    # Digital Object Identifier for the reference (if available). Missing Values: Allowed.
+    doi: str | None = None
+    # Keywords for the reference, separated by semi-colons. Example: "Keyword1; Keyword2; Keyword3". Missing Values: Represented as None.
+    keywords: str | None = None
+    # Publication year
+    year: int | None = None
+
+    # Label indicating inclusion/exclusion of the reference at title-abstract level screening. Values: {0, 1}.
+    # Missing Values: Not allowed (must always have a value).
+    label_abs: int
+    # Label indicating some classification (e.g., full-text relevance). Values: {0, 1}. Missing Values: None.
+    label_ft: int | None = None
