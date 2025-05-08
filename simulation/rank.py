@@ -3,7 +3,8 @@ from typing import Generator
 
 import typer
 
-from rankings.simple import SVMRanker, SDGRanker, RegressionRanker
+from rankings.simple import SVMRanker, SDGRanker, RegressionRanker, LightGBMRanker
+from rankings.simple import TrainMode
 from shared.config import settings
 from shared.dataset import BatchStrategy
 from shared.ranking import AbstractRanker
@@ -17,6 +18,7 @@ app = typer.Typer()
 def it_rankers(use_svm: bool = False,
                use_sdg: bool = False,
                use_reg: bool = False,
+               use_lgbm: bool = False,
                use_fine_tuning: bool = False) -> Generator[AbstractRanker, None, None]:
     if use_reg or use_sdg or use_svm:
         import nltk
@@ -55,10 +57,18 @@ def it_rankers(use_svm: bool = False,
         logger.info('Using SVM model with smaller input...')
         yield SVMRanker(model_params={'C': 1.0, 'kernel': 'linear'},
                         ngram_range=(1, 1), max_features=5000)
-
+        
         if use_fine_tuning:
             logger.info('Using SVM model with tuning...')
             yield SVMRanker(tuning=True)
+        
+    if use_lgbm:
+        logger.info('Using LightGBM model...')
+        yield LightGBMRanker()
+
+        if use_fine_tuning:
+            logger.info('Using SVM model with tuning...')
+            yield LightGBMRanker(tuning=True)
 
 
 @app.command()
@@ -66,6 +76,7 @@ def produce_rankings(
         use_svm: bool = False,
         use_sdg: bool = False,
         use_reg: bool = False,
+        use_lgbm: bool = False,
         use_fine_tuning: bool = False,
         num_repeats: int = 3,
         num_random_init: int = 100,
@@ -75,6 +86,8 @@ def produce_rankings(
         dyn_min_batch_size: int = 100,
         dyn_growth_rate: float = 0.1,
         dyn_max_batch_size: int = 600,
+        min_incl_size: int = 10,
+        min_dataset_size: int = 2000,
         inject_random_batch_every: int = 0,
         predict_on_all: bool = True,  # if false, will only predict on unseen documents
 ):
@@ -85,6 +98,13 @@ def produce_rankings(
         logger.info(f'Running simulation on dataset: {dataset.KEY}')
         logger.info(f'  n_incl={dataset.n_incl}, n_total={dataset.n_total} '
                     f'=> {dataset.n_incl / dataset.n_total:.2%}')
+        
+        if dataset.n_incl < min_incl_size:
+            logger.warning(f' > Skipping {dataset.KEY}; too few included documents')
+            continue
+        if dataset.n_total < min_dataset_size:
+            logger.warning(f' > Skipping {dataset.KEY}; too few documents')
+            continue
 
         # override batch setup
         dataset.num_random_init = num_random_init
@@ -97,7 +117,7 @@ def produce_rankings(
         dataset.inject_random_batch_every = inject_random_batch_every
 
         logger.info(f'Running setups...')
-        for ranker in it_rankers(use_svm=use_svm, use_reg=use_reg, use_sdg=use_sdg,
+        for ranker in it_rankers(use_svm=use_svm, use_reg=use_reg, use_sdg=use_sdg, use_lgbm=use_lgbm,
                                  use_fine_tuning=use_fine_tuning):
             for repeat in range(1, num_repeats + 1):
                 logger.info(f'Running for repeat cycle {repeat}...')

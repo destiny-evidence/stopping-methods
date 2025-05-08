@@ -8,6 +8,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import SGDClassifier, LogisticRegression
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.svm import SVC
+from lightgbm import LGBMClassifier
+#import lightgbm as lgb
 
 from shared.ranking import AbstractRanker, TrainMode
 
@@ -18,7 +20,7 @@ logger = logging.getLogger('rank-simple')
 class _SimpleRanking(AbstractRanker):
     def __init__(self,
                  name: str,
-                 BaseModel: Type[SGDClassifier | SVC | LogisticRegression],
+                 BaseModel: Type[SGDClassifier | SVC | LogisticRegression | LGBMClassifier],
                  model_params: dict[str, Any],
                  train_mode: TrainMode = TrainMode.RESET,
                  tuning: bool = False,
@@ -215,6 +217,46 @@ class RegressionRanker(_SimpleRanking):
             tuning=tuning,
             tuning_params={
                 'solver': ['saga', 'liblinear', 'lbfgs']  # 'newton-cholesky',
+            },
+            scoring='roc_auc',
+            max_features=max_features,
+            ngram_range=ngram_range,
+            min_df=min_df,
+            **kwargs
+        )
+
+class LightGBMRanker(_SimpleRanking):
+    def __init__(self,
+                 train_mode: TrainMode = TrainMode.RESET,
+                 tuning: bool = False,
+                 model_params: dict[str, Any] | None = None,
+                 max_features: int = 75000,
+                 ngram_range: tuple[int, int] = (1, 3),
+                 min_df: int | float = 3,
+                 **kwargs: dict[str, Any]):
+        super().__init__(
+            name='lightgbm',
+            BaseModel=LGBMClassifier,
+            model_params={
+                'objective': 'binary',  # (not multiclass))
+                'learning_rate':0.1,
+                'n_estimators':100,    # Number of boosting rounds
+                'num_leaves':31,       # Number of leaves in each tree
+                'random_state':42, # For reproducibility
+                **(model_params or {})
+            },
+            train_mode=train_mode,
+            tuning=tuning,
+            tuning_params={
+                "learning_rate": [0.01, 0.05, 0.1, 0.2],  # Controls step size in boosting
+                "n_estimators": [50, 100, 200, 500],  # Number of boosting rounds
+                "num_leaves": [10, 20, 31, 50],  # Number of leaves in each tree (higher = more complex)
+                "max_depth": [-1, 5, 10, 20],  # Depth of trees (-1 means no limit)
+                "min_child_samples": [5, 10, 20],  # Minimum data points required in a leaf
+                "subsample": [0.8, 0.9, 1.0],  # Fraction of samples used in each boosting iteration
+                "colsample_bytree": [0.8, 0.9, 1.0],  # Fraction of features used per tree
+                "reg_alpha": [0, 0.1, 0.5, 1],  # L1 regularization
+                "reg_lambda": [0, 0.1, 0.5, 1]  # L2 regularization
             },
             scoring='roc_auc',
             max_features=max_features,
