@@ -113,8 +113,8 @@ class Knee(AbstractMethod):
     def parameter_options(self) -> Generator[KneeParamSet, None, None]:
         for mode in [RhoMode.DYNAMIC, RhoMode.STATIC]:
             for stopping_beta in [100, 1000]:
-                for rho_target in [3, 5, 6, 8, 10]:
-                    for n_windows in [10, 100, 1000]:
+                for rho_target in [3, 6, 10]:
+                    for n_windows in [10, 50, 100]:
                         yield KneeParamSet(
                             mode=mode,
                             stopping_beta=stopping_beta,
