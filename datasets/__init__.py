@@ -14,8 +14,8 @@ logger = logging.getLogger('datasets')
 #               | GenericCollectionCSV
 #               | GenericCollectionJSON)
 
-
-__all__ = ['SynergyDataset', 'GenericCollectionCSV', 'GenericCollectionJSON', 'GenericPairedRISCollection']
+# 'SynergyDataset',
+__all__ = ['GenericCollectionCSV', 'GenericCollectionJSON', 'GenericPairedRISCollection']
 
 
 def it_collections() -> Generator[AbstractCollection, None, None]:

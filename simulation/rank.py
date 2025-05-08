@@ -30,12 +30,12 @@ def it_rankers(use_svm: bool = False,
         yield RegressionRanker()
         # logger.info('Using regression with cholesky solver...')
         # yield RegressionRanker(model_params={'solver': 'newton-cholesky'})
-        logger.info('Using regression with smaller input...')
-        yield RegressionRanker(ngram_range=(1, 1), max_features=5000)
-
-        if use_fine_tuning:
-            logger.info('Using regression with tuning...')
-            yield SDGRanker(tuning=True)
+        # logger.info('Using regression with smaller input...')
+        # yield RegressionRanker(ngram_range=(1, 1), max_features=5000)
+        #
+        # if use_fine_tuning:
+        #     logger.info('Using regression with tuning...')
+        #     yield SDGRanker(tuning=True)
 
     if use_sdg:
         logger.info('Using SDG model...')
