@@ -51,3 +51,5 @@ for file in Path('./data/rankings').glob('*.feather'):
     plt.suptitle(
         "Gain: {gain:.3f}; stepping: {stepping:.3f}".format(gain=assess_gain(df), stepping=assess_non_nice(df)))
     plt.savefig('./data/rankings/plots/' + file.name.replace(".feather", ".png"))
+
+
