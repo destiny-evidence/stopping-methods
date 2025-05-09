@@ -88,6 +88,7 @@ class AbstractRanker(ABC):
     def get_params(self, preview: bool = True) -> dict[str, Any]:
         return {
             'key': self.key,
+            'name': self.name,
             **self.assembled_params(preview=preview),
         }
 

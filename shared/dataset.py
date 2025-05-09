@@ -106,7 +106,7 @@ class Dataset:
         self.stripped_texts = [process_text_aggressive(txt) for txt in tqdm(self.texts, desc='tokenising')]
         self.vectorizer = TfidfVectorizer(ngram_range=ngram_range, max_features=max_features, min_df=min_df,
                                           strip_accents='unicode')
-        scaler = StandardScaler()
+        scaler = StandardScaler(with_mean=False)
         vectors = self.vectorizer.fit_transform(self.stripped_texts)
         self.vectors = scaler.fit_transform(vectors)
 

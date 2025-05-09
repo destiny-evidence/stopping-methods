@@ -60,5 +60,5 @@ def best_model_ranking(dataset: Dataset,
             'batch_size': dataset.get_next_batch_size(),
         })
         dataset.register_predictions(scores=scores[best_model],
-                                     model=params[best_model]['key'])
+                                     model=params[best_model]['ranker'])
     return infos
