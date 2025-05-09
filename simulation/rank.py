@@ -1,71 +1,34 @@
+import json
 import logging
-from typing import Generator
+from typing import Annotated
 
 import typer
-
-from rankings.simple import SVMRanker, SDGRanker, RegressionRanker
+from rankings import assert_models, it_rankers
+from rankings.use_best import best_model_ranking as bm_ranking
 from shared.config import settings
 from shared.dataset import BatchStrategy
-from shared.ranking import AbstractRanker
 from datasets import it_datasets
+from shared.disk import json_dumps
 
 logger = logging.getLogger('precompute ranks')
 
 app = typer.Typer()
 
 
-def it_rankers(use_svm: bool = False,
-               use_sdg: bool = False,
-               use_reg: bool = False,
-               use_fine_tuning: bool = False) -> Generator[AbstractRanker, None, None]:
-    if use_reg or use_sdg or use_svm:
-        import nltk
-        logger.debug('Loading NLTK data...')
-        nltk.download('stopwords')
-        nltk.download('punkt')
-        nltk.download('punkt_tab')
+def prepare_nltk():
+    logger.debug('Loading NLTK data...')
+    from nltk import download
 
-    if use_reg:
-        # logger.info('Using regression model...')
-        # yield RegressionRanker()
-        # logger.info('Using regression with cholesky solver...')
-        # yield RegressionRanker(model_params={'solver': 'newton-cholesky'})
-        # logger.info('Using regression with smaller input...')
-        # yield RegressionRanker(ngram_range=(1, 1), max_features=5000)
-        #
-        if use_fine_tuning:
-            logger.info('Using regression with tuning...')
-            yield SDGRanker(tuning=True)
-
-    if use_sdg:
-        logger.info('Using SDG model...')
-        yield SDGRanker()
-        logger.info('Using SDG model with smaller input...')
-        yield SDGRanker(ngram_range=(1, 1), max_features=5000)
-
-        if use_fine_tuning:
-            logger.info('Using SDG model with tuning...')
-            yield SDGRanker(tuning=True)
-
-    if use_svm:
-        logger.info('Using SVM model...')
-        yield SVMRanker(model_params={'C': 1.0, 'kernel': 'linear'})
-        logger.info('Using SVM model with rbf...')
-        yield SVMRanker(model_params={'C': 1.0, 'kernel': 'rbf', 'gamma': 'scale'})
-        logger.info('Using SVM model with smaller input...')
-        yield SVMRanker(model_params={'C': 1.0, 'kernel': 'linear'},
-                        ngram_range=(1, 1), max_features=5000)
-
-        if use_fine_tuning:
-            logger.info('Using SVM model with tuning...')
-            yield SVMRanker(tuning=True)
+    download('stopwords')
+    download('punkt')
+    download('punkt_tab')
+    download('wordnet')
+    download('averaged_perceptron_tagger_eng')
 
 
 @app.command()
 def produce_rankings(
-        use_svm: bool = False,
-        use_sdg: bool = False,
-        use_reg: bool = False,
+        models: list[str] | None = None,
         use_fine_tuning: bool = False,
         num_repeats: int = 3,
         num_random_init: int = 100,
@@ -78,13 +41,21 @@ def produce_rankings(
         min_dataset_size: int = 500,
         min_inclusion_rate: float = 0.01,
         inject_random_batch_every: int = 0,
+        max_vocab: int = 7000,
+        max_ngram: int = 1,
+        min_df: int = 3,
+        store_feather: bool = True,
+        store_csv: bool = False,
         predict_on_all: bool = True,  # if false, will only predict on unseen documents
 ):
+    if min_dataset_size <= num_random_init:
+        raise ValueError('min_dataset_size must be higher than num_random_init')
+
     logger.info(f'Data path: {settings.DATA_PATH}')
     settings.ranking_data_path.mkdir(parents=True, exist_ok=True)
 
-    if min_dataset_size <= num_random_init:
-        raise ValueError('min_dataset_size must be higher than num_random_init')
+    models = assert_models(models)
+    prepare_nltk()
 
     for dataset in it_datasets():
         logger.info(f'Running simulation on dataset: {dataset.KEY}')
@@ -98,19 +69,14 @@ def produce_rankings(
             logger.warning(f'Dataset {dataset.KEY} inclusion rate too small!')
             continue
 
-        # override batch setup
-        dataset.num_random_init = num_random_init
-        dataset.batch_strategy = batch_strategy
-        dataset.batch_size = stat_batch_size
-        dataset.min_batch_incl = dyn_min_batch_incl
-        dataset.min_batch_size = dyn_min_batch_size
-        dataset.growth_rate = dyn_growth_rate
-        dataset.max_batch_size = dyn_max_batch_size
-        dataset.inject_random_batch_every = inject_random_batch_every
+        dataset.init(num_random_init=num_random_init, batch_strategy=batch_strategy,
+                     stat_batch_size=stat_batch_size, dyn_min_batch_size=dyn_min_batch_size,
+                     dyn_max_batch_size=dyn_max_batch_size, inject_random_batch_every=inject_random_batch_every,
+                     dyn_min_batch_incl=dyn_min_batch_incl, dyn_growth_rate=dyn_growth_rate,
+                     ngram_range=(1, max_ngram), max_features=max_vocab, min_df=min_df)
 
         logger.info(f'Running setups...')
-        for ranker in it_rankers(use_svm=use_svm, use_reg=use_reg, use_sdg=use_sdg,
-                                 use_fine_tuning=use_fine_tuning):
+        for ranker in it_rankers(models=models, use_fine_tuning=use_fine_tuning):
             for repeat in range(1, num_repeats + 1):
                 logger.info(f'Running for repeat cycle {repeat}...')
                 ranker.attach_dataset(dataset)
@@ -137,6 +103,89 @@ def produce_rankings(
                                   extra={
                                       'repeat': repeat,
                                   })
-                dataset.store(settings.ranking_data_path / f'{target_key}.feather')
-                # dataset.store(settings.ranking_data_path / f'{target_key}.csv')
+                if store_feather:
+                    dataset.store(settings.ranking_data_path / f'{target_key}.feather')
+                if store_csv:
+                    dataset.store(settings.ranking_data_path / f'{target_key}.csv')
                 dataset.reset()
+
+
+@app.command()
+def best_model_ranking(
+        models: Annotated[list[str] | None, typer.Option(help='Models to use')] = None,
+        num_repeats: int = 3,
+        min_dataset_size: int = 500,
+        min_inclusion_rate: float = 0.01,
+        num_random_init: int = 100,
+        batch_strategy: BatchStrategy = BatchStrategy.DYNAMIC,
+        stat_batch_size: int = 100,
+        dyn_min_batch_incl: int = 5,
+        dyn_min_batch_size: int = 100,
+        dyn_growth_rate: float = 0.1,
+        dyn_max_batch_size: int = 600,
+        inject_random_batch_every: int = 0,
+        train_proportion: float = 0.85,
+        max_vocab: int = 7000,
+        max_ngram: int = 1,
+        min_df: int = 3,
+        random_state: int | None = None,
+        store_feather: bool = True,
+        store_csv: bool = False,
+):
+    logger.info(f'Data path: {settings.DATA_PATH}')
+    settings.ranking_data_path.mkdir(parents=True, exist_ok=True)
+
+    if min_dataset_size <= num_random_init:
+        raise ValueError('min_dataset_size must be higher than num_random_init')
+
+    models = assert_models(models)
+    prepare_nltk()
+
+    for dataset in it_datasets():
+        logger.info(f'Running simulation on dataset: {dataset.KEY}')
+        logger.info(f'  n_incl={dataset.n_incl}, n_total={dataset.n_total} '
+                    f'=> {dataset.n_incl / dataset.n_total:.2%}')
+
+        if dataset.n_total < min_dataset_size:
+            logger.warning(f'Dataset {dataset.KEY} is too small {dataset.n_total} < {min_dataset_size}')
+            continue
+        if (dataset.n_incl / dataset.n_total) < min_inclusion_rate:
+            logger.warning(f'Dataset {dataset.KEY} inclusion rate too small!')
+            continue
+
+        dataset.init(num_random_init=num_random_init, batch_strategy=batch_strategy,
+                     stat_batch_size=stat_batch_size, dyn_min_batch_size=dyn_min_batch_size,
+                     dyn_max_batch_size=dyn_max_batch_size, inject_random_batch_every=inject_random_batch_every,
+                     dyn_min_batch_incl=dyn_min_batch_incl, dyn_growth_rate=dyn_growth_rate,
+                     ngram_range=(1, max_ngram), max_features=max_vocab, min_df=min_df)
+
+        logger.info('Running setup')
+        for repeat in range(1, num_repeats + 1):
+            logger.info(f'Running for repeat cycle {repeat}...')
+
+            target_key = f'{dataset.KEY}-{num_random_init}-{repeat}-best'
+            logger.info(f'Running ranker {target_key}...')
+            logger.debug(f'Checking for {settings.ranking_data_path / f'{target_key}.feather'}')
+            if ((settings.ranking_data_path / f'{target_key}.feather').exists()):
+                logger.info(f' > Skipping {target_key}; simulation already exists')
+                continue
+
+            infos = bm_ranking(dataset=dataset,
+                               models=models,
+                               repeat=repeat,
+                               train_proportion=train_proportion,
+                               random_state=random_state)
+
+            # persist to disk and reset
+            logger.info(f'Persisting to disk for {target_key}...')
+            json_dumps(settings.ranking_data_path / f'{target_key}.json', {
+                'repeat': repeat,
+                'batches': infos,
+            }, indent=2)
+
+            if store_feather:
+                dataset.store(settings.ranking_data_path / f'{target_key}.feather')
+            if store_csv:
+                dataset.store(settings.ranking_data_path / f'{target_key}.csv')
+
+            dataset.reset()

@@ -1,5 +1,5 @@
 import json
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 from enum import Enum
 from hashlib import sha1
 from pathlib import Path
@@ -35,6 +35,12 @@ class AbstractRanker(ABC):
         self.dataset = None
 
     @property
+    @classmethod
+    @abstractmethod
+    def name(cls) -> str:
+        raise NotImplementedError
+
+    @property
     @abstractmethod
     def key(self):
         raise NotImplementedError()
@@ -44,11 +50,11 @@ class AbstractRanker(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def train(self) -> None:
+    def train(self, idxs: list[int] | None = None, ) -> None:
         raise NotImplementedError()
 
     @abstractmethod
-    def predict(self, predict_on_all: bool = True) -> np.ndarray:
+    def predict(self, idxs: list[int] | None = None, predict_on_all: bool = True) -> np.ndarray:
         raise NotImplementedError()
 
     @abstractmethod
@@ -90,4 +96,4 @@ class AbstractRanker(ABC):
 
     def store_info(self, target_path: Path, extra: dict[str, Any] | None = None) -> None:
         with open(target_path, 'w') as f:
-            json.dump({**self.get_params(preview=False), **(extra or {})}, fp=f, indent=2)
+            json.dump(self.get_params(preview=False) | (extra or {}), fp=f, indent=2)

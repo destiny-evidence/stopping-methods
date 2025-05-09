@@ -57,10 +57,13 @@ for each repitition
 
 ### How to run 
 ```
-Requires python 3.12
+Requires python 3.12–3.14
 ```
 
 ```
+# To pre-compute rankings run
+PYTHONPATH=. python simulation/main.py precompute-bm-rankings --models svm --models sgd --models logreg --dyn-max-batch-size=2000 --num-repeats 1 --num-random-init 500 --min-dataset-size 1000 --min-inclusion-rate 0.01
+
 # To run simulation
 PYTHONPATH=. python simulation/simulate.py FIXED
 

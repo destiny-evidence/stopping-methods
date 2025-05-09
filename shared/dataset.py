@@ -9,8 +9,10 @@ from itertools import chain, batched
 import numpy as np
 import pandas as pd
 from pydantic import BaseModel, ConfigDict
+from sklearn.feature_extraction.text import TfidfVectorizer
+from tqdm import tqdm
 
-from shared.config import settings
+from .text_utils import process_text_aggressive
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +60,7 @@ class Dataset:
                  dyn_min_batch_size: int = 100,
                  dyn_growth_rate: float = 0.5,
                  dyn_max_batch_size: int = 200,
-                 inject_random_batch_every: int = 0):
+                 inject_random_batch_every: int = 0, ):
         self.KEY = key
         self.labels = labels
         self.texts = texts
@@ -66,6 +68,9 @@ class Dataset:
         self.df = pd.DataFrame()
         self.reset()
 
+        self.stripped_texts = None
+        self.vectors = None
+        self.vectorizer = None
         self.num_random_init = num_random_init
         self.batch_strategy = batch_strategy
         self.batch_size = stat_batch_size
@@ -74,6 +79,33 @@ class Dataset:
         self.growth_rate = dyn_growth_rate
         self.max_batch_size = dyn_max_batch_size
         self.inject_random_batch_every = inject_random_batch_every
+
+    def init(self,
+             num_random_init: int = 100,
+             batch_strategy: BatchStrategy = BatchStrategy.STATIC,
+             stat_batch_size: int = 100,
+             dyn_min_batch_incl: int = 2,
+             dyn_min_batch_size: int = 100,
+             dyn_growth_rate: float = 0.5,
+             dyn_max_batch_size: int = 200,
+             inject_random_batch_every: int = 0,
+             max_features: int = 75000,
+             ngram_range: tuple[int, int] = (1, 3),
+             min_df: int | float = 3):
+        self.num_random_init = num_random_init
+        self.batch_strategy = batch_strategy
+        self.batch_size = stat_batch_size
+        self.min_batch_incl = dyn_min_batch_incl
+        self.min_batch_size = dyn_min_batch_size
+        self.growth_rate = dyn_growth_rate
+        self.max_batch_size = dyn_max_batch_size
+        self.inject_random_batch_every = inject_random_batch_every
+
+        logger.info('Preprocessing texts...')
+        self.stripped_texts = [process_text_aggressive(txt) for txt in tqdm(self.texts, desc='tokenising')]
+        self.vectorizer = TfidfVectorizer(ngram_range=ngram_range, max_features=max_features, min_df=min_df,
+                                          strip_accents='unicode')
+        self.vectors = self.vectorizer.fit_transform(self.stripped_texts)
 
     @property
     def n_total(self) -> int:
@@ -117,6 +149,8 @@ class Dataset:
             'batch': None,
             'order': None,
             'random': None,
+            'model': None,
+            'score': None,
             'label': self.labels,
             'text': self.texts,
         })
@@ -188,12 +222,15 @@ class Dataset:
             self.df.loc[self.df.iloc[idxs].index, 'order'] = np.arange(len(idxs)) + n_seen
             self.df.loc[self.df.iloc[idxs].index, 'batch'] = batch_i
             self.df.loc[self.df.iloc[idxs].index, 'random'] = True
-            self.df[f'scores_batch_{batch_i}'] = -1
+            self.df.loc[self.df.iloc[idxs].index, 'score'] = None
+            self.df.loc[self.df.iloc[idxs].index, 'model'] = None
 
             # immediately continue with next batch
             self.prepare_next_batch()
 
-    def register_predictions(self, scores: np.ndarray[tuple[int], np.dtype[np.float64]]) -> None:
+    def register_predictions(self,
+                             scores: np.ndarray[tuple[int], np.dtype[np.float64]],
+                             model: str | None = None) -> None:
         if len(scores) == 0:
             logger.warning('Tried to register predictions but scores are empty')
             return
@@ -205,20 +242,19 @@ class Dataset:
 
         batch_size = self.get_next_batch_size()
 
+        ordering = (-scores).argsort()
         if len(scores) == self.n_unseen:
-            self.df.loc[self.unseen_data.index, f'scores_batch_{batch_i}'] = scores
+            idxs = self.unseen_data.index[ordering[:batch_size]].to_list()
         elif len(scores) == self.n_total:
-            self.df[f'scores_batch_{batch_i}'] = scores
+            idxs = self.df.index[ordering[:batch_size]].to_list()
         else:
             raise AttributeError('Number of prediction scores do not match number of '
                                  'all or remaining unseen documents.')
-        self.df.fillna({f'scores_batch_{batch_i}': -1}, inplace=True)
-        ordering = (-self.unseen_data[f'scores_batch_{batch_i}']).argsort()
-        self.df.loc[ordering.index, 'order'] = ordering + n_seen
-        idxs = ordering.sort_values().index.to_list()[:batch_size]
-
+        self.df.loc[idxs, 'order'] = np.arange(batch_size) + n_seen
         self.df.loc[idxs, 'batch'] = batch_i
+        self.df.loc[idxs, 'score'] = scores[ordering[:batch_size]]
         self.df.loc[idxs, 'random'] = False
+        self.df.loc[idxs, 'model'] = model
 
     def store(self, target: Path) -> None:
         df = self.df.sort_values(by='order').drop('text', axis='columns')
