@@ -75,7 +75,6 @@ def produce_rankings(
                      dyn_min_batch_incl=dyn_min_batch_incl, dyn_growth_rate=dyn_growth_rate,
                      ngram_range=(1, max_ngram), max_features=max_vocab, min_df=min_df)
 
-        logger.info(f'Running setups...')
         for ranker in it_rankers(models=models, use_fine_tuning=use_fine_tuning):
             for repeat in range(1, num_repeats + 1):
                 logger.info(f'Running for repeat cycle {repeat}...')
@@ -153,13 +152,6 @@ def best_model_ranking(
             logger.warning(f'Dataset {dataset.KEY} inclusion rate too small!')
             continue
 
-        dataset.init(num_random_init=num_random_init, batch_strategy=batch_strategy,
-                     stat_batch_size=stat_batch_size, dyn_min_batch_size=dyn_min_batch_size,
-                     dyn_max_batch_size=dyn_max_batch_size, inject_random_batch_every=inject_random_batch_every,
-                     dyn_min_batch_incl=dyn_min_batch_incl, dyn_growth_rate=dyn_growth_rate,
-                     ngram_range=(1, max_ngram), max_features=max_vocab, min_df=min_df)
-
-        logger.info('Running setup')
         for repeat in range(1, num_repeats + 1):
             logger.info(f'Running for repeat cycle {repeat}...')
 
@@ -169,6 +161,13 @@ def best_model_ranking(
             if ((settings.ranking_data_path / f'{target_key}.feather').exists()):
                 logger.info(f' > Skipping {target_key}; simulation already exists')
                 continue
+
+            if repeat == 1:
+                dataset.init(num_random_init=num_random_init, batch_strategy=batch_strategy,
+                             stat_batch_size=stat_batch_size, dyn_min_batch_size=dyn_min_batch_size,
+                             dyn_max_batch_size=dyn_max_batch_size, inject_random_batch_every=inject_random_batch_every,
+                             dyn_min_batch_incl=dyn_min_batch_incl, dyn_growth_rate=dyn_growth_rate,
+                             ngram_range=(1, max_ngram), max_features=max_vocab, min_df=min_df)
 
             infos = bm_ranking(dataset=dataset,
                                models=models,

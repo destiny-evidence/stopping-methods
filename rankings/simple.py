@@ -3,7 +3,6 @@ from typing import Any, Type
 
 import numpy as np
 from sklearn.svm import SVC
-from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils._testing import ignore_warnings
 from sklearn.linear_model import SGDClassifier, LogisticRegression
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
@@ -12,11 +11,12 @@ from lightgbm import LGBMClassifier
 from shared.ranking import AbstractRanker, TrainMode
 
 logger = logging.getLogger('rank-simple')
+logging.getLogger('LightGBM').setLevel(logging.ERROR)
 
 
 class _SimpleRanking(AbstractRanker):
     def __init__(self,
-                 BaseModel: Type[SGDClassifier | SVC | LogisticRegression],
+                 BaseModel: Type[SGDClassifier | SVC | LogisticRegression | LGBMClassifier],
                  model_params: dict[str, Any],
                  train_mode: TrainMode = TrainMode.RESET,
                  tuning: bool = False,
@@ -53,11 +53,11 @@ class _SimpleRanking(AbstractRanker):
         if self.tuning:
             clf = self.BaseModel(**self.model_params)
             self.model = GridSearchCV(estimator=clf, param_grid=self.tuning_params, scoring=self.scoring,
-                                      cv=StratifiedKFold(n_splits=2), refit=True)
+                                      cv=StratifiedKFold(n_splits=2), refit=True, n_jobs=5)
         else:
             self.model = self.BaseModel(**self.model_params)
 
-    @ignore_warnings(category=ConvergenceWarning)
+    @ignore_warnings()
     def train(self, idxs: list[int] | None = None):
         if not idxs:
             idxs = self.dataset.seen_data.index
@@ -216,20 +216,21 @@ class LightGBMRanker(_SimpleRanking):
                 'n_estimators': 100,  # Number of boosting rounds
                 'num_leaves': 31,  # Number of leaves in each tree
                 'random_state': 42,  # For reproducibility
+                'verbose': -1,
                 **(model_params or {})
             },
             train_mode=train_mode,
             tuning=tuning,
             tuning_params={
-                "learning_rate": [0.01, 0.05, 0.1, 0.2],  # Controls step size in boosting
-                "n_estimators": [50, 100, 200, 500],  # Number of boosting rounds
-                "num_leaves": [10, 20, 31, 50],  # Number of leaves in each tree (higher = more complex)
-                "max_depth": [-1, 5, 10, 20],  # Depth of trees (-1 means no limit)
-                "min_child_samples": [5, 10, 20],  # Minimum data points required in a leaf
-                "subsample": [0.8, 0.9, 1.0],  # Fraction of samples used in each boosting iteration
-                "colsample_bytree": [0.8, 0.9, 1.0],  # Fraction of features used per tree
-                "reg_alpha": [0, 0.1, 0.5, 1],  # L1 regularization
-                "reg_lambda": [0, 0.1, 0.5, 1]  # L2 regularization
+                "learning_rate": [0.01, 0.05, 0.2],  # Controls step size in boosting
+                "n_estimators": [50, 250, 500],  # Number of boosting rounds
+                "num_leaves": [10, 25, 50],  # Number of leaves in each tree (higher = more complex)
+                "max_depth": [-1, 5, 20],  # Depth of trees (-1 means no limit)
+                "min_child_samples": [5, 20],  # Minimum data points required in a leaf
+                "subsample": [0.8, 1.0],  # Fraction of samples used in each boosting iteration
+                "colsample_bytree": [0.8, 1.0],  # Fraction of features used per tree
+                "reg_alpha": [0, 0.5, 1],  # L1 regularization
+                "reg_lambda": [0, 0.5, 1]  # L2 regularization
             },
             scoring='recall',
             **kwargs
