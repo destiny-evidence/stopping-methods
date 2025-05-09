@@ -2,6 +2,8 @@ import logging
 import numpy as np
 from sklearn.metrics import recall_score
 from sklearn.model_selection import train_test_split
+from sklearn.utils._testing import ignore_warnings
+from sklearn.exceptions import ConvergenceWarning
 
 from rankings import it_tuning_rankers as it_rankers
 from shared.dataset import Dataset
@@ -9,6 +11,7 @@ from shared.dataset import Dataset
 logger = logging.getLogger('rank-simple')
 
 
+@ignore_warnings(category=ConvergenceWarning)
 def best_model_ranking(dataset: Dataset,
                        models: list[str],
                        repeat: int = 1,
@@ -40,11 +43,11 @@ def best_model_ranking(dataset: Dataset,
             ranker.init()
             ranker.train(idxs=train_idxs)
 
-            logger.debug(f'Testing ranker {ranker.key} for dataset {dataset.KEY} '
+            logger.debug(f'Testing ranker {ranker.name} for dataset {dataset.KEY} '
                          f'on {1 - train_proportion:.0%} test set')
             predictions = ranker.predict(idxs=test_idxs)
-            objective = recall_score(dataset.df.loc[test_idxs, 'label'] , predictions> 0.5)
-            logger.debug(f'Recall is {objective:.2%} for ranker {ranker.key} on dataset {dataset.KEY} ')
+            objective = recall_score(dataset.df.loc[test_idxs, 'label'], predictions > 0.5, zero_division=0)
+            logger.debug(f'Recall is {objective:.2%} for ranker {ranker.name} on dataset {dataset.KEY} ')
 
             logger.debug('Predicting on all unseen...')
             predictions = ranker.predict(predict_on_all=False)
@@ -60,5 +63,5 @@ def best_model_ranking(dataset: Dataset,
             'batch_size': dataset.get_next_batch_size(),
         })
         dataset.register_predictions(scores=scores[best_model],
-                                     model=params[best_model]['ranker'])
+                                     model=params[best_model]['name'])
     return infos

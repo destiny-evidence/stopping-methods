@@ -3,6 +3,8 @@ from typing import Any, Type
 
 import numpy as np
 from sklearn.svm import SVC
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.utils._testing import ignore_warnings
 from sklearn.linear_model import SGDClassifier, LogisticRegression
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from lightgbm import LGBMClassifier
@@ -55,6 +57,7 @@ class _SimpleRanking(AbstractRanker):
         else:
             self.model = self.BaseModel(**self.model_params)
 
+    @ignore_warnings(category=ConvergenceWarning)
     def train(self, idxs: list[int] | None = None):
         if not idxs:
             idxs = self.dataset.seen_data.index
