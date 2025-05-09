@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     DATA_PATH: Path = Path('./data')
+    N_JOBS: int = 5
 
     @property
     def raw_data_path(self) -> Path:

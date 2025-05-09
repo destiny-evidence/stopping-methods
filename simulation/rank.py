@@ -1,4 +1,3 @@
-import json
 import logging
 from typing import Annotated
 
@@ -81,9 +80,8 @@ def produce_rankings(
                 ranker.attach_dataset(dataset)
                 target_key = f'{dataset.KEY}-{repeat}-{ranker.key}'
                 logger.info(f'Running ranker {target_key}...')
-                logger.debug(f'Checking for {settings.ranking_data_path / f'{target_key}.feather'}')
-                if ((settings.ranking_data_path / f'{target_key}.feather').exists()
-                        or (settings.ranking_data_path / f'{target_key}.csv').exists()):
+                logger.debug(f'Checking for {settings.ranking_data_path / f'{target_key}.json'}')
+                if (settings.ranking_data_path / f'{target_key}.json').exists():
                     logger.info(f' > Skipping {target_key}; simulation already exists')
                     continue
 
@@ -127,6 +125,7 @@ def best_model_ranking(
         max_vocab: int = 7000,
         max_ngram: int = 1,
         min_df: int = 3,
+        tuning_interval: int = 1,
         random_state: int | None = None,
         store_feather: bool = True,
         store_csv: bool = False,
@@ -157,8 +156,8 @@ def best_model_ranking(
 
             target_key = f'{dataset.KEY}-{num_random_init}-{repeat}-best'
             logger.info(f'Running ranker {target_key}...')
-            logger.debug(f'Checking for {settings.ranking_data_path / f'{target_key}.feather'}')
-            if ((settings.ranking_data_path / f'{target_key}.feather').exists()):
+            logger.debug(f'Checking for {settings.ranking_data_path / f'{target_key}.json'}')
+            if ((settings.ranking_data_path / f'{target_key}.json').exists()):
                 logger.info(f' > Skipping {target_key}; simulation already exists')
                 continue
 
@@ -173,6 +172,7 @@ def best_model_ranking(
                                models=models,
                                repeat=repeat,
                                train_proportion=train_proportion,
+                               tuning_interval=tuning_interval,
                                random_state=random_state)
 
             # persist to disk and reset

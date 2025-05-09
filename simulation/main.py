@@ -1,4 +1,5 @@
 import logging
+
 import typer
 from datasets import prepare_collections
 from simulation.rank import produce_rankings, best_model_ranking

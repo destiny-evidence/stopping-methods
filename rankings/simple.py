@@ -1,36 +1,59 @@
+import os
 import logging
+import warnings
+from abc import abstractmethod
 from typing import Any, Type
 
+import optuna
 import numpy as np
 from sklearn.svm import SVC
-from sklearn.utils._testing import ignore_warnings
+from sklearn.base import clone as clone_model
+from sklearn.exceptions import DataConversionWarning, ConvergenceWarning
 from sklearn.linear_model import SGDClassifier, LogisticRegression
-from sklearn.model_selection import GridSearchCV, StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, cross_val_score
 from lightgbm import LGBMClassifier
 
+from shared.config import settings
 from shared.ranking import AbstractRanker, TrainMode
 
 logger = logging.getLogger('rank-simple')
 logging.getLogger('LightGBM').setLevel(logging.ERROR)
 
+# Stop optuna from logging all trial results
+# optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+# Capturing some sklearn warnings to clear up logs
+warnings.filterwarnings(action='ignore', category=DataConversionWarning)
+warnings.filterwarnings(action='ignore', category=ConvergenceWarning)
+warnings.filterwarnings(action='ignore', category=UserWarning)
+warnings.filterwarnings(action='ignore')
+# Not everything is caught when parallelising, this helps...
+os.environ['PYTHONWARNINGS'] = 'ignore'
+
+type Classifier = SGDClassifier | SVC | LogisticRegression | LGBMClassifier
+
 
 class _SimpleRanking(AbstractRanker):
     def __init__(self,
-                 BaseModel: Type[SGDClassifier | SVC | LogisticRegression | LGBMClassifier],
+                 BaseModel: Type[Classifier],
                  model_params: dict[str, Any],
                  train_mode: TrainMode = TrainMode.RESET,
                  tuning: bool = False,
+                 tuning_trials: int = 35,
                  scoring: str | None = None,
-                 tuning_params: dict[str, Any] | None = None,
                  random_seed: int | None = None,
                  **kwargs: dict[str, Any]):
         super().__init__(train_mode=train_mode, tuning=tuning, **kwargs)
         self.model_params = model_params
         self.BaseModel = BaseModel
         self.scoring = scoring
-        self.tuning_params = tuning_params
+        self.tuning_trials = tuning_trials
         self.random_seed = random_seed
         self.model = None
+
+    @abstractmethod
+    def _hp_space(self, trial: optuna.Trial) -> dict[str, Any]:
+        raise NotImplementedError()
 
     @property
     def key(self):
@@ -49,16 +72,14 @@ class _SimpleRanking(AbstractRanker):
     def clear(self):
         self.model = None
 
-    def _init_model(self):
-        if self.tuning:
-            clf = self.BaseModel(**self.model_params)
-            self.model = GridSearchCV(estimator=clf, param_grid=self.tuning_params, scoring=self.scoring,
-                                      cv=StratifiedKFold(n_splits=2), refit=True, n_jobs=5)
-        else:
-            self.model = self.BaseModel(**self.model_params)
+    def _tune(self, trial: optuna.Trial, x: np.ndarray, y: np.ndarray) -> float:
+        self.model_params = (self.model_params | self._hp_space(trial))
+        model = self.BaseModel(**self.model_params)
+        cv = StratifiedKFold(n_splits=2, shuffle=True, random_state=self.random_seed)
+        score = cross_val_score(model, x, y, cv=cv, scoring=self.scoring)
+        return score.mean()
 
-    @ignore_warnings()
-    def train(self, idxs: list[int] | None = None):
+    def train(self, idxs: list[int] | None = None, clone: bool = False) -> None:
         if not idxs:
             idxs = self.dataset.seen_data.index
         x = self.dataset.vectors[idxs]
@@ -71,8 +92,20 @@ class _SimpleRanking(AbstractRanker):
         elif self.train_mode == TrainMode.FULL:
             raise NotImplementedError()
         elif self.train_mode == TrainMode.RESET:
-            self._init_model()
-            self.model.fit(x, y)
+            if self.tuning and self.model is not None and clone:
+                self.model: Classifier = clone_model(self.model)
+                self.model.fit(x, y)
+            elif self.tuning:
+                study = optuna.create_study(direction='maximize')
+                study.optimize(lambda trial: self._tune(trial, x, y),
+                               n_trials=self.tuning_trials,
+                               n_jobs=settings.N_JOBS)
+                logger.debug(f'Hyper-parameter-tuning for {self.name} done with best score {study.best_value}')
+                self.model = self.BaseModel(**(self.model_params | study.best_params))
+                self.model.fit(x, y)
+            else:
+                self.model = self.BaseModel(**self.model_params)
+                self.model.fit(x, y)
 
     def predict(self, idxs: list[int] | None = None, predict_on_all: bool = True) -> np.ndarray:
         if not idxs:
@@ -91,21 +124,22 @@ class _SimpleRanking(AbstractRanker):
 
     def _get_params(self, preview: bool = True) -> dict[str, Any]:
         base = {
-            'ngram_range': str(self.dataset.vectorizer.ngram_range),
-            'max_features': self.dataset.vectorizer.max_features,
-            'min_df': self.dataset.vectorizer.min_df,
-            **self.model_params
+            'vectoriser': {
+                'ngram_range': self.dataset.vectorizer.ngram_range,
+                'max_features': self.dataset.vectorizer.max_features,
+                'min_df': self.dataset.vectorizer.min_df,
+            },
+            'model': self.name,
         }
         if preview:
-            return base
-        if hasattr(self.model, 'best_estimator_'):
-            return {
-                **base,
-                **{f'{self.name}-{k}': getattr(self.model.best_estimator_, k) for k in self.model_params.keys()}
+            return base | {
+                'hyperparams': self.model_params
             }
-        return {
-            **base,
-            **{f'{self.name}-{k}': getattr(self.model, k) for k in self.model_params.keys()}
+        return base | {
+            'hyperparams': {
+                k: getattr(self.model, k)
+                for k in self.model_params.keys()
+            }
         }
 
 
@@ -115,31 +149,34 @@ class SVMRanker(_SimpleRanking):
     def __init__(self,
                  train_mode: TrainMode = TrainMode.RESET,
                  tuning: bool = False,
+                 tuning_trials: int = 35,
                  model_params: dict[str, Any] | None = None,
                  random_seed: int | None = None,
                  **kwargs: dict[str, Any]):
         super().__init__(
             BaseModel=SVC,
             model_params={
-                'kernel': 'linear',
-                'class_weight': 'balanced',
-                'degree': 3,
-                'gamma': 'auto',
-                'probability': True,
-                'C': 1.0,
-                'max_iter': 1000,
-                **(model_params or {})
-            },
+                             'kernel': 'linear',
+                             'class_weight': 'balanced',
+                             'degree': 3,
+                             'gamma': 'auto',
+                             'probability': True,
+                             'C': 1.0,
+                             'max_iter': 1000
+                         } | (model_params or {}),
             train_mode=train_mode,
             tuning=tuning,
-            tuning_params={
-                'C': [1, 10],
-                'gamma': [0.001, 0.01, 1],  # , 'auto', 'scale'
-                'kernel': ['linear', 'rbf']  # , 'sigmoid'
-            },
+            tuning_trials=tuning_trials,
             scoring='recall',
             random_seed=random_seed,
             **kwargs)
+
+    def _hp_space(self, trial: optuna.Trial) -> dict[str, Any]:
+        return {
+            'C': trial.suggest_float('C', low=0.001, high=100, log=True),
+            'gamma': trial.suggest_float('gamma', 0.001, 1.0, log=True),
+            'kernel': trial.suggest_categorical('kernel', ['linear', 'rbf'])  # , 'poly', 'sigmoid'
+        }
 
 
 class SGDRanker(_SimpleRanking):
@@ -148,26 +185,29 @@ class SGDRanker(_SimpleRanking):
     def __init__(self,
                  train_mode: TrainMode = TrainMode.RESET,
                  tuning: bool = False,
+                 tuning_trials: int = 35,
                  model_params: dict[str, Any] | None = None,
                  random_seed: int | None = None,
                  **kwargs: dict[str, Any]):
         super().__init__(
             BaseModel=SGDClassifier,
             model_params={
-                'class_weight': 'balanced',
-                'loss': 'log_loss',
-                'max_iter': 1000,
-                **(model_params or {})
-            },
+                             'class_weight': 'balanced',
+                             'loss': 'log_loss',
+                             'max_iter': 1000
+                         } | (model_params or {}),
             train_mode=train_mode,
             tuning=tuning,
-            tuning_params={
-                'alpha': 10.0 ** -np.arange(1, 7)
-            },
+            tuning_trials=tuning_trials,
             scoring='recall',
             random_seed=random_seed,
             **kwargs
         )
+
+    def _hp_space(self, trial: optuna.Trial) -> dict[str, Any]:
+        return {
+            'alpha': trial.suggest_float('alpha', 0.0001, 100000, log=True),
+        }
 
 
 class RegressionRanker(_SimpleRanking):
@@ -176,28 +216,32 @@ class RegressionRanker(_SimpleRanking):
     def __init__(self,
                  train_mode: TrainMode = TrainMode.RESET,
                  tuning: bool = False,
+                 tuning_trials: int = 35,
                  model_params: dict[str, Any] | None = None,
                  random_seed: int | None = None,
                  **kwargs: dict[str, Any]):
         super().__init__(
             BaseModel=LogisticRegression,
             model_params={
-                'class_weight': 'balanced',
-                'tol': 0.0001,
-                'C': 1.0,
-                'solver': 'lbfgs',
-                'max_iter': 100,
-                **(model_params or {})
-            },
+                             'class_weight': 'balanced',
+                             'tol': 0.0001,
+                             'C': 1.0,
+                             'solver': 'lbfgs',
+                             'max_iter': 100,
+                         } | (model_params or {}),
             train_mode=train_mode,
             tuning=tuning,
-            tuning_params={
-                'solver': ['saga', 'liblinear', 'lbfgs']  # 'newton-cholesky',
-            },
+            tuning_trials=tuning_trials,
             scoring='recall',
             random_seed=random_seed,
             **kwargs
         )
+
+    def _hp_space(self, trial: optuna.Trial) -> dict[str, Any]:
+        return {
+            'C': trial.suggest_float('C', low=0.01, high=10, log=True),
+            'solver': trial.suggest_categorical('solver', ['saga', 'liblinear', 'lbfgs']),
+        }
 
 
 class LightGBMRanker(_SimpleRanking):
@@ -206,6 +250,7 @@ class LightGBMRanker(_SimpleRanking):
     def __init__(self,
                  train_mode: TrainMode = TrainMode.RESET,
                  tuning: bool = False,
+                 tuning_trials: int = 35,
                  model_params: dict[str, Any] | None = None,
                  **kwargs: dict[str, Any]):
         super().__init__(
@@ -221,17 +266,29 @@ class LightGBMRanker(_SimpleRanking):
             },
             train_mode=train_mode,
             tuning=tuning,
-            tuning_params={
-                "learning_rate": [0.01, 0.05, 0.2],  # Controls step size in boosting
-                "n_estimators": [50, 250, 500],  # Number of boosting rounds
-                "num_leaves": [10, 25, 50],  # Number of leaves in each tree (higher = more complex)
-                "max_depth": [-1, 5, 20],  # Depth of trees (-1 means no limit)
-                "min_child_samples": [5, 20],  # Minimum data points required in a leaf
-                "subsample": [0.8, 1.0],  # Fraction of samples used in each boosting iteration
-                "colsample_bytree": [0.8, 1.0],  # Fraction of features used per tree
-                "reg_alpha": [0, 0.5, 1],  # L1 regularization
-                "reg_lambda": [0, 0.5, 1]  # L2 regularization
-            },
+            tuning_trials=tuning_trials,
             scoring='recall',
             **kwargs
         )
+
+    def _hp_space(self, trial: optuna.Trial) -> dict[str, Any]:
+        return {
+            # Controls step size in boosting
+            'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.2, log=True),
+            # Number of boosting rounds (discrete float, behaves like int)
+            'n_estimators': trial.suggest_int('n_estimators', 50, 500, log=True),
+            # Number of leaves in each tree (higher = more complex)
+            'num_leaves': trial.suggest_int('num_leaves', 10, 50, log=True),
+            # Depth of trees (-1 means no limit)
+            'max_depth': trial.suggest_int('max_depth', -1, 20),
+            # Minimum data points in a leaf
+            'min_child_samples': trial.suggest_int('min_child_samples', 5, 20, log=True),
+            # Fraction of samples used in each boosting iteration
+            'subsample': trial.suggest_float('subsample', 0.5, 1.0),
+            # Fraction of features used per tree
+            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.5, 1.0),
+            # L1 regularization
+            'reg_alpha': trial.suggest_float('reg_alpha', 0.0, 1.0),
+            # L2 regularization
+            'reg_lambda': trial.suggest_float('reg_alpha', 0.0, 1.0),
+        }

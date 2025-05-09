@@ -1,5 +1,5 @@
 import json
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from enum import Enum
 from hashlib import sha1
 from pathlib import Path
@@ -50,7 +50,7 @@ class AbstractRanker(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def train(self, idxs: list[int] | None = None, ) -> None:
+    def train(self, idxs: list[int] | None = None, clone: bool = False) -> None:
         raise NotImplementedError()
 
     @abstractmethod
@@ -71,24 +71,26 @@ class AbstractRanker(ABC):
 
     def assembled_params(self, preview: bool = True) -> dict[str, Any]:
         return {
+            'name': self.name,
             'ranker': self.__class__.__name__,
             'train_mode': self.train_mode,
             'tuning': self.tuning,
             'dataset': self.dataset.KEY,
-            'batch-strategy': self.dataset.batch_strategy,
-            'batch-stat_batch_size': self.dataset.batch_size,
-            'batch-dyn_min_batch_incl': self.dataset.min_batch_incl,
-            'batch-dyn_min_batch_size': self.dataset.min_batch_size,
-            'batch-dyn_growth_rate': self.dataset.growth_rate,
-            'batch-dyn_max_batch_size': self.dataset.max_batch_size,
-            'batch-inject_random_batch_every': self.dataset.inject_random_batch_every,
-            **{f'model-{k}': v for k, v in self._get_params(preview=preview).items()},
+            'batch': {
+                'strategy': self.dataset.batch_strategy,
+                'stat_batch_size': self.dataset.batch_size,
+                'dyn_min_batch_incl': self.dataset.min_batch_incl,
+                'dyn_min_batch_size': self.dataset.min_batch_size,
+                'dyn_growth_rate': self.dataset.growth_rate,
+                'dyn_max_batch_size': self.dataset.max_batch_size,
+                'inject_random_batch_every': self.dataset.inject_random_batch_every,
+            },
+            'model': self._get_params(preview=preview)
         }
 
     def get_params(self, preview: bool = True) -> dict[str, Any]:
         return {
             'key': self.key,
-            'name': self.name,
             **self.assembled_params(preview=preview),
         }
 

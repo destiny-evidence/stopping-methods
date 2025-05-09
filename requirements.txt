@@ -11,3 +11,4 @@ pyarrow==18.1.0
 matplotlib==3.10.0
 httpx==0.28.1
 lightgbm==4.6.0
+optuna==4.3.0
