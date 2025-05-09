@@ -4,12 +4,13 @@ import random
 from enum import Enum
 from pathlib import Path
 from typing import Generator
-from itertools import chain, batched
+from itertools import batched
 
 import numpy as np
 import pandas as pd
 from pydantic import BaseModel, ConfigDict
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 
 from .text_utils import process_text_aggressive
@@ -105,7 +106,9 @@ class Dataset:
         self.stripped_texts = [process_text_aggressive(txt) for txt in tqdm(self.texts, desc='tokenising')]
         self.vectorizer = TfidfVectorizer(ngram_range=ngram_range, max_features=max_features, min_df=min_df,
                                           strip_accents='unicode')
-        self.vectors = self.vectorizer.fit_transform(self.stripped_texts)
+        scaler = StandardScaler()
+        vectors = self.vectorizer.fit_transform(self.stripped_texts)
+        self.vectors = scaler.fit_transform(vectors)
 
     @property
     def n_total(self) -> int:

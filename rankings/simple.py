@@ -1,11 +1,10 @@
 import logging
-from abc import abstractmethod
 from typing import Any, Type
 
 import numpy as np
+from sklearn.svm import SVC
 from sklearn.linear_model import SGDClassifier, LogisticRegression
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
-from sklearn.svm import SVC
 from lightgbm import LGBMClassifier
 
 from shared.ranking import AbstractRanker, TrainMode
@@ -30,6 +29,7 @@ class _SimpleRanking(AbstractRanker):
         self.tuning_params = tuning_params
         self.random_seed = random_seed
         self.model = None
+
     @property
     def key(self):
         key = (f'{self.name}'
@@ -198,23 +198,21 @@ class RegressionRanker(_SimpleRanking):
 
 
 class LightGBMRanker(_SimpleRanking):
+    name = 'lightgbm'
+
     def __init__(self,
                  train_mode: TrainMode = TrainMode.RESET,
                  tuning: bool = False,
                  model_params: dict[str, Any] | None = None,
-                 max_features: int = 75000,
-                 ngram_range: tuple[int, int] = (1, 3),
-                 min_df: int | float = 3,
                  **kwargs: dict[str, Any]):
         super().__init__(
-            name='lightgbm',
             BaseModel=LGBMClassifier,
             model_params={
                 'objective': 'binary',  # (not multiclass))
-                'learning_rate':0.1,
-                'n_estimators':100,    # Number of boosting rounds
-                'num_leaves':31,       # Number of leaves in each tree
-                'random_state':42, # For reproducibility
+                'learning_rate': 0.1,
+                'n_estimators': 100,  # Number of boosting rounds
+                'num_leaves': 31,  # Number of leaves in each tree
+                'random_state': 42,  # For reproducibility
                 **(model_params or {})
             },
             train_mode=train_mode,
@@ -230,9 +228,6 @@ class LightGBMRanker(_SimpleRanking):
                 "reg_alpha": [0, 0.1, 0.5, 1],  # L1 regularization
                 "reg_lambda": [0, 0.1, 0.5, 1]  # L2 regularization
             },
-            scoring='roc_auc',
-            max_features=max_features,
-            ngram_range=ngram_range,
-            min_df=min_df,
+            scoring='recall',
             **kwargs
         )
