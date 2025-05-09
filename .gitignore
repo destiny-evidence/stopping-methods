@@ -166,3 +166,11 @@ cython_debug/
 # Visual studio hidden folder
 /.vs
 
+*.csv
+*.png
+*.feather
+*.json
+*.pdf
+*.xlsx
+*.jpeg
+*.jpg

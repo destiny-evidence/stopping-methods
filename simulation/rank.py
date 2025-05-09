@@ -28,13 +28,13 @@ def it_rankers(use_svm: bool = False,
         nltk.download('punkt_tab')
 
     if use_reg:
-        logger.info('Using regression model...')
-        yield RegressionRanker()
+        # logger.info('Using regression model...')
+        # yield RegressionRanker()
         # logger.info('Using regression with cholesky solver...')
         # yield RegressionRanker(model_params={'solver': 'newton-cholesky'})
-        logger.info('Using regression with smaller input...')
-        yield RegressionRanker(ngram_range=(1, 1), max_features=5000)
-
+        # logger.info('Using regression with smaller input...')
+        # yield RegressionRanker(ngram_range=(1, 1), max_features=5000)
+        #
         if use_fine_tuning:
             logger.info('Using regression with tuning...')
             yield SDGRanker(tuning=True)
@@ -86,24 +86,35 @@ def produce_rankings(
         dyn_min_batch_size: int = 100,
         dyn_growth_rate: float = 0.1,
         dyn_max_batch_size: int = 600,
-        min_incl_size: int = 10,
-        min_dataset_size: int = 2000,
+        min_dataset_size: int = 500,
+        min_inclusion_rate: float = 0.01,
         inject_random_batch_every: int = 0,
         predict_on_all: bool = True,  # if false, will only predict on unseen documents
 ):
     logger.info(f'Data path: {settings.DATA_PATH}')
     settings.ranking_data_path.mkdir(parents=True, exist_ok=True)
 
+    if min_dataset_size <= num_random_init:
+        raise ValueError('min_dataset_size must be higher than num_random_init')
+
     for dataset in it_datasets():
         logger.info(f'Running simulation on dataset: {dataset.KEY}')
         logger.info(f'  n_incl={dataset.n_incl}, n_total={dataset.n_total} '
                     f'=> {dataset.n_incl / dataset.n_total:.2%}')
         
-        if dataset.n_incl < min_incl_size:
-            logger.warning(f' > Skipping {dataset.KEY}; too few included documents')
-            continue
+
         if dataset.n_total < min_dataset_size:
-            logger.warning(f' > Skipping {dataset.KEY}; too few documents')
+            logger.warning(f'Dataset {dataset.KEY} is too small {dataset.n_total} < {min_dataset_size}')
+            continue
+        if (dataset.n_incl / dataset.n_total) < min_inclusion_rate:
+            logger.warning(f'Dataset {dataset.KEY} inclusion rate too small!')
+            continue
+
+        if dataset.n_total < min_dataset_size:
+            logger.warning(f'Dataset {dataset.KEY} is too small {dataset.n_total} < {min_dataset_size}')
+            continue
+        if (dataset.n_incl / dataset.n_total) < min_inclusion_rate:
+            logger.warning(f'Dataset {dataset.KEY} inclusion rate too small!')
             continue
 
         # override batch setup

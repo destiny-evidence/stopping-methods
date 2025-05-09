@@ -241,6 +241,8 @@ class RankedDataset:
             self.info = json.load(f)
         self.ranking = pd.read_feather(self.ranking_fp)
 
+        self._scores: list[float] | None = None
+
     @property
     def n_total(self) -> int:
         return self.ranking.shape[0]
@@ -274,6 +276,16 @@ class RankedDataset:
         return self.info['ranker']
 
     @property
+    def scores(self) -> list[float]:
+        if self._scores is None:
+            self._scores: list[float] = [
+                li
+                for bi, batch in self.ranking.groupby('batch')
+                for li in batch[f'scores_batch_{bi}'].tolist()
+            ]
+        return self._scores
+
+    @property
     def __len__(self) -> int:
         return self.n_total
 
@@ -293,7 +305,8 @@ class RankedDataset:
     def it_sim_batches(self) -> Generator[tuple[int, list[int], list[float], list[bool]], None, None]:
         for bi, batch in self.ranking.groupby('batch'):
             batch = batch.sort_values('order')
-            yield bi, batch['label'].tolist(), batch[f'scores_batch_{bi}'].tolist(), (~batch['random']).tolist()
+            # yield bi, batch['label'].tolist(), batch[f'scores_batch_{bi}'].tolist(), (~batch['random']).tolist()
+            yield bi, batch['label'].tolist(), self.scores, (~batch['random']).tolist()
 
     def it_cum_sim_batches(self) -> Generator[tuple[int, list[int], list[float], list[bool]], None, None]:
         scores = np.array([])
@@ -303,11 +316,11 @@ class RankedDataset:
             scores = np.concatenate(scores, b_scores)
             labels = np.concatenate(labels, b_labels)
             is_prioritised = np.concatenate(is_prioritised, b_prio)
-            yield bi, labels, scores, is_prioritised
+            yield bi, labels, self.scores, is_prioritised
 
     def it_batches(self, batch_size: int) -> Generator[tuple[int, list[int], list[float], list[bool]], None, None]:
         for batches, labels, scores, is_prioritised in zip(*[batched(pt, batch_size) for pt in self.data]):
-            yield batches, labels, scores, is_prioritised
+            yield batches, labels, self.scores, is_prioritised
 
     def it_cum_batches(self, batch_size: int) -> Generator[tuple[np.array, np.array, np.array, np.array], None, None]:
         batches = []
@@ -319,4 +332,4 @@ class RankedDataset:
             scores += b_scores
             labels += b_labels
             is_prioritised += b_prio
-            yield np.array(batches), np.array(labels), np.array(scores), np.array(is_prioritised)
+            yield np.array(batches), np.array(labels), np.array(self.scores), np.array(is_prioritised)

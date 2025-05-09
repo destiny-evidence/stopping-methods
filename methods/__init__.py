@@ -9,8 +9,10 @@ from .heuristic_fixed import HeuristicFixed
 from .curve_fitting import CurveFitting
 from .knee import Knee
 from .alison import Alison
+from .batchprecision import BatchPrecision
+from .method2399 import Method2399
 
-__all__ = ['Buscar', 'CurveFitting', 'HeuristicFraction', 'HeuristicFixed', 'Alison', 'Knee']
+__all__ = ['Buscar', 'CurveFitting', 'HeuristicFraction', 'HeuristicFixed', 'Alison', 'Knee', 'BatchPrecision', 'Method2399']
 
 
 def it_methods(dataset: RankedDataset, methods: list[str] | None = None) -> Generator[AbstractMethod, None, None]:
