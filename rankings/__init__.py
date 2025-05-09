@@ -2,7 +2,7 @@ import logging
 from typing import Type, Generator
 
 from shared.ranking import AbstractRanker, TrainMode
-from .simple import SGDRanker, RegressionRanker, SVMRanker
+from .simple import SGDRanker, RegressionRanker, SVMRanker, LightGBMRanker
 
 logger = logging.getLogger('ranker')
 
@@ -10,6 +10,7 @@ MODELS: dict[str, Type[AbstractRanker]] = {
     SGDRanker.name: SGDRanker,
     RegressionRanker.name: RegressionRanker,
     SVMRanker.name: SVMRanker,
+    LightGBMRanker.name: LightGBMRanker,
 }
 
 
@@ -57,6 +58,14 @@ def it_rankers(models: list[str], use_fine_tuning: bool = False) -> Generator[Ab
         if use_fine_tuning:
             logger.info('Using SVM model with tuning...')
             yield SVMRanker(tuning=True)
+
+    if LightGBMRanker.name in models:
+        logger.info('Using LightGBM model...')
+        yield LightGBMRanker()
+
+        if use_fine_tuning:
+            logger.info('Using SVM model with tuning...')
+            yield LightGBMRanker(tuning=True)
 
 # import rankings
 # def it_rankers() -> Generator[AbstractRanker, None, None]:
