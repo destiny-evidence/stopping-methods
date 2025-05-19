@@ -40,6 +40,11 @@ only perform runs that it doesn't have cached data for yet.
 In general, it will create a ranking for all datasets, for all models, for all respective configurations
 
 ```bash
+# Recommended env vars (assuming you already downloaded necessary huggingface models)
+export OPENBLAS_NUM_THREADS=1
+export TRANSFORMERS_OFFLINE=1
+export HF_HUB_OFFLINE=1
+
 # get help 
 export PYTHONPATH=$PYTHONPATH:/path/to/stopping-methods && python simulation/main.py precompute-rankings --help
 # run

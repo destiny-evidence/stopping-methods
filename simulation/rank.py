@@ -6,7 +6,7 @@ from rankings import assert_models, it_rankers
 from rankings.use_best import best_model_ranking as bm_ranking
 from shared.config import settings
 from shared.dataset import BatchStrategy
-from datasets import it_datasets
+from loaders import it_datasets
 from shared.disk import json_dumps
 
 logger = logging.getLogger('precompute ranks')
@@ -67,7 +67,7 @@ def produce_rankings(
             logger.warning(f'Dataset {dataset.KEY} is too small {dataset.n_total} < {min_dataset_size}')
             continue
         if (dataset.n_incl / dataset.n_total) < min_inclusion_rate:
-            logger.warning(f'Dataset {dataset.KEY} inclusion rate too small!')
+            logger.warning(f'Dataset {dataset.KEY} inclusion rate too small (< {min_inclusion_rate:.2%})!')
             continue
         if dataset.n_incl < (initial_holdout + dyn_min_batch_incl):
             logger.warning(f'Dataset {dataset.KEY} does not have enough includes to simulate initial holdout!')

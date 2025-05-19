@@ -32,7 +32,7 @@ class AbstractRanker(ABC):
         super().__init__(**kwargs)
         self.train_mode = train_mode
         self.tuning = tuning
-        self.dataset = None
+        self.dataset: Dataset | None = None
 
     @property
     @classmethod

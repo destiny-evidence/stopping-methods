@@ -12,3 +12,6 @@ matplotlib==3.10.0
 httpx==0.28.1
 lightgbm==4.6.0
 optuna==4.3.0
+transformers[torch]==4.51.3
+accelerate==1.7.0
+datasets==3.6.0

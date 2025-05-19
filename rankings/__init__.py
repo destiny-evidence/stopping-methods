@@ -3,6 +3,7 @@ from typing import Type, Generator
 
 from shared.ranking import AbstractRanker, TrainMode
 from .simple import SGDRanker, RegressionRanker, SVMRanker, LightGBMRanker
+from .transformer import TransRanker
 
 logger = logging.getLogger('ranker')
 
@@ -11,6 +12,7 @@ MODELS: dict[str, Type[AbstractRanker]] = {
     RegressionRanker.name: RegressionRanker,
     SVMRanker.name: SVMRanker,
     LightGBMRanker.name: LightGBMRanker,
+    TransRanker.name: TransRanker,
 }
 
 
@@ -24,8 +26,8 @@ def assert_models(models: list[str]) -> list[str]:
         return models
 
 
-def it_tuning_rankers(models: list[str]) -> Generator[AbstractRanker, None, None]:
-    for model in models:
+def it_tuning_rankers(models: list[str] | None = None) -> Generator[AbstractRanker, None, None]:
+    for model in (models or MODELS.keys()):
         yield MODELS[model](tuning=True, train_mode=TrainMode.RESET)
 
 

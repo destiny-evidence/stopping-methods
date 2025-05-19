@@ -1,5 +1,5 @@
 import logging
-from sklearn.metrics import recall_score, precision_score
+from sklearn.metrics import recall_score, precision_score, f1_score
 from sklearn.model_selection import train_test_split
 
 from rankings import it_tuning_rankers as it_rankers
@@ -45,6 +45,7 @@ def best_model_ranking(dataset: Dataset,
 
             best_prec = 0
             best_rec = 0
+            best_f1 = 0
             y_pred = None
             best_ranker = None
             for ranker in it_rankers(models):
@@ -60,13 +61,15 @@ def best_model_ranking(dataset: Dataset,
                 predictions = ranker.predict(idxs=test_idxs)
                 prec = precision_score(dataset.df.loc[test_idxs, 'label'], predictions > 0.5, zero_division=0)
                 rec = recall_score(dataset.df.loc[test_idxs, 'label'], predictions > 0.5, zero_division=0)
-                logger.debug(f'Recall is {rec:.2%}, precision is {prec:.2%} '
+                f1 = f1_score(dataset.df.loc[test_idxs, 'label'], predictions > 0.5, zero_division=0)
+                logger.debug(f'Recall is {rec:.2%}, precision is {prec:.2%} (F1={f1:.2%})'
                              f'for ranker {ranker.name} on dataset {dataset.KEY} ')
 
-                if best_ranker is None or (rec > best_rec) or (rec == 1 and prec > best_prec):
+                if best_ranker is None or f1 > best_f1:
                     logger.debug('Found best model so far, remembering and predicting all unseen!')
                     best_rec = rec
                     best_prec = prec
+                    best_f1 = f1
                     best_ranker = ranker
                     y_pred = ranker.predict(predict_on_all=False)
 

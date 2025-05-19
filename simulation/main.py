@@ -1,7 +1,7 @@
 import logging
 
 import typer
-from datasets import prepare_collections
+from loaders import prepare_collections
 from simulation.rank import produce_rankings, best_model_ranking
 from simulation.simulate import compute_stops
 

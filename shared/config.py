@@ -12,19 +12,23 @@ class Settings(BaseSettings):
 
     @property
     def raw_data_path(self) -> Path:
-        return self.DATA_PATH / 'raw'
+        return (self.DATA_PATH / 'raw').absolute().resolve()
 
     @property
     def processed_data_path(self) -> Path:
-        return self.DATA_PATH / 'processed'
+        return (self.DATA_PATH / 'processed').absolute().resolve()
 
     @property
     def ranking_data_path(self) -> Path:
-        return self.DATA_PATH / 'rankings'
+        return (self.DATA_PATH / 'rankings').absolute().resolve()
 
     @property
     def result_data_path(self) -> Path:
-        return self.DATA_PATH / 'results'
+        return (self.DATA_PATH / 'results').absolute().resolve()
+
+    @property
+    def model_data_path(self) -> Path:
+        return (self.DATA_PATH / 'models').absolute().resolve()
 
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s: %(message)s', level=logging.DEBUG)
