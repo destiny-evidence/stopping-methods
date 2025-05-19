@@ -84,6 +84,10 @@ class AbstractRanker(ABC):
                 'dyn_growth_rate': self.dataset.growth_rate,
                 'dyn_max_batch_size': self.dataset.max_batch_size,
                 'inject_random_batch_every': self.dataset.inject_random_batch_every,
+                'num_random_init': self.dataset.num_random_init,
+                'initial_holdout': self.dataset.initial_holdout,
+                'initial_holdout_idxs': self.dataset.initial_holdout_idxs,
+                'grow_init_batch': self.dataset.grow_init_batch,
             },
             'model': self._get_params(preview=preview)
         }

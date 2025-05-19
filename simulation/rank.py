@@ -40,6 +40,8 @@ def produce_rankings(
         min_dataset_size: int = 500,
         min_inclusion_rate: float = 0.01,
         inject_random_batch_every: int = 0,
+        initial_holdout: int = 0,
+        grow_init_batch: bool = True,
         max_vocab: int = 7000,
         max_ngram: int = 1,
         min_df: int = 3,
@@ -67,11 +69,15 @@ def produce_rankings(
         if (dataset.n_incl / dataset.n_total) < min_inclusion_rate:
             logger.warning(f'Dataset {dataset.KEY} inclusion rate too small!')
             continue
+        if dataset.n_incl < (initial_holdout + dyn_min_batch_incl):
+            logger.warning(f'Dataset {dataset.KEY} does not have enough includes to simulate initial holdout!')
+            continue
 
         dataset.init(num_random_init=num_random_init, batch_strategy=batch_strategy,
                      stat_batch_size=stat_batch_size, dyn_min_batch_size=dyn_min_batch_size,
                      dyn_max_batch_size=dyn_max_batch_size, inject_random_batch_every=inject_random_batch_every,
                      dyn_min_batch_incl=dyn_min_batch_incl, dyn_growth_rate=dyn_growth_rate,
+                     initial_holdout=initial_holdout, grow_init_batch=grow_init_batch,
                      ngram_range=(1, max_ngram), max_features=max_vocab, min_df=min_df)
 
         for ranker in it_rankers(models=models, use_fine_tuning=use_fine_tuning):
@@ -129,6 +135,8 @@ def best_model_ranking(
         random_state: int | None = None,
         store_feather: bool = True,
         store_csv: bool = False,
+        initial_holdout: int = 0,
+        grow_init_batch: bool = True,
 ):
     logger.info(f'Data path: {settings.DATA_PATH}')
     settings.ranking_data_path.mkdir(parents=True, exist_ok=True)
@@ -150,6 +158,9 @@ def best_model_ranking(
         if (dataset.n_incl / dataset.n_total) < min_inclusion_rate:
             logger.warning(f'Dataset {dataset.KEY} inclusion rate too small!')
             continue
+        if dataset.n_incl < (initial_holdout + dyn_min_batch_incl):
+            logger.warning(f'Dataset {dataset.KEY} does not have enough includes to simulate initial holdout!')
+            continue
 
         for repeat in range(1, num_repeats + 1):
             logger.info(f'Running for repeat cycle {repeat}...')
@@ -166,6 +177,7 @@ def best_model_ranking(
                              stat_batch_size=stat_batch_size, dyn_min_batch_size=dyn_min_batch_size,
                              dyn_max_batch_size=dyn_max_batch_size, inject_random_batch_every=inject_random_batch_every,
                              dyn_min_batch_incl=dyn_min_batch_incl, dyn_growth_rate=dyn_growth_rate,
+                             initial_holdout=initial_holdout, grow_init_batch=grow_init_batch,
                              ngram_range=(1, max_ngram), max_features=max_vocab, min_df=min_df)
 
             infos = bm_ranking(dataset=dataset,

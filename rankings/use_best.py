@@ -13,7 +13,7 @@ def best_model_ranking(dataset: Dataset,
                        repeat: int = 1,
                        train_proportion: float = 0.85,
                        tuning_interval: int = 1,
-                       random_state: int | None = None):
+                       random_state: int | None = None) -> list[dict]:
     # We'll store hyperparameters of the best model per batch here
     infos = []
 

@@ -51,17 +51,21 @@ class BatchStrategy(str, Enum):
 
 
 class Dataset:
-    def __init__(self,
-                 key: str,
-                 labels: list[int], texts: list[str],
-                 num_random_init: int = 100,
-                 batch_strategy: BatchStrategy = BatchStrategy.STATIC,
-                 stat_batch_size: int = 100,
-                 dyn_min_batch_incl: int = 2,
-                 dyn_min_batch_size: int = 100,
-                 dyn_growth_rate: float = 0.5,
-                 dyn_max_batch_size: int = 200,
-                 inject_random_batch_every: int = 0, ):
+    def __init__(
+            self,
+            key: str,
+            labels: list[int], texts: list[str],
+            num_random_init: int = 100,
+            batch_strategy: BatchStrategy = BatchStrategy.STATIC,
+            stat_batch_size: int = 100,
+            dyn_min_batch_incl: int = 2,
+            dyn_min_batch_size: int = 100,
+            dyn_growth_rate: float = 0.5,
+            dyn_max_batch_size: int = 200,
+            inject_random_batch_every: int = 0,
+            initial_holdout: int = 0,
+            grow_init_batch: bool = True,
+    ):
         self.KEY = key
         self.labels = labels
         self.texts = texts
@@ -80,6 +84,9 @@ class Dataset:
         self.growth_rate = dyn_growth_rate
         self.max_batch_size = dyn_max_batch_size
         self.inject_random_batch_every = inject_random_batch_every
+        self.initial_holdout = initial_holdout
+        self.initial_holdout_idxs: list[int] | None = None
+        self.grow_init_batch = grow_init_batch
 
     def init(self,
              num_random_init: int = 100,
@@ -90,6 +97,8 @@ class Dataset:
              dyn_growth_rate: float = 0.5,
              dyn_max_batch_size: int = 200,
              inject_random_batch_every: int = 0,
+             initial_holdout: int = 0,
+             grow_init_batch: bool = True,
              max_features: int = 75000,
              ngram_range: tuple[int, int] = (1, 3),
              min_df: int | float = 3):
@@ -101,6 +110,9 @@ class Dataset:
         self.growth_rate = dyn_growth_rate
         self.max_batch_size = dyn_max_batch_size
         self.inject_random_batch_every = inject_random_batch_every
+        self.initial_holdout = initial_holdout
+        self.initial_holdout_idxs = None
+        self.grow_init_batch = grow_init_batch
 
         logger.info('Preprocessing texts...')
         self.stripped_texts = [process_text_aggressive(txt) for txt in tqdm(self.texts, desc='tokenising')]
@@ -195,19 +207,33 @@ class Dataset:
         random.shuffle(idxs)
         batch_size = self.get_next_batch_size() if sample_size is None else sample_size
         if self.last_batch == 0:
+            if self.initial_holdout > 0:
+                holdout_idxs = self.unseen_data[self.unseen_data['label'] == 1].index.tolist()
+                random.shuffle(holdout_idxs)
+                self.initial_holdout_idxs = holdout_idxs[:self.initial_holdout]
+
+                # remove holdouts from the indices to sample from
+                idxs = [idx for idx in idxs if idx not in holdout_idxs]
+
             min_incl = self.min_batch_incl or 2
-            num_incl = self.df.loc[idxs[:batch_size]]['label'].sum()
+            num_incl = self.df.loc[idxs]['label'].cumsum()
 
             if self.unseen_data['label'].sum() < min_incl:
                 raise AssertionError('Not enough includes for initial random sample from unseen data!')
 
-            if num_incl < min_incl:
-                logger.warning('Initial sample did not have enough includes, going to inject some!')
-                incl_idxs = self.unseen_data[self.unseen_data['label'] == 1].index.tolist()[:min_incl - num_incl]
-                idxs = incl_idxs + idxs
+            if num_incl.iloc[batch_size] < min_incl:
+                if self.grow_init_batch:
+                    logger.warning('Initial sample did not have enough includes; growing sample until it fits!')
+                    batch_size = num_incl.reset_index()[(num_incl > min_incl)].index[0]
+                else:
+                    logger.warning('Initial sample did not have enough includes, going to inject some!')
+                    incl_idxs = self.unseen_data[self.unseen_data['label'] == 1].index.tolist()
+                    init_idxs = idxs[:batch_size]
+                    incl_idxs = list(set(incl_idxs) - set(init_idxs))[:min_incl - num_incl]
+                    idxs = incl_idxs + idxs  # FIXME: potentially we are pushing out a previously included one...
 
         idxs = idxs[:batch_size]
-        random.shuffle(idxs)
+        random.shuffle(idxs)  # seems redundant, but needed when we injected something
         return idxs
 
     def prepare_next_batch(self) -> None:
@@ -345,7 +371,7 @@ class RankedDataset:
         for bi, batch in self.ranking.groupby('batch'):
             batch = batch.sort_values('order')
             # yield bi, batch['label'].tolist(), batch[f'scores_batch_{bi}'].tolist(), (~batch['random']).tolist()
-            yield bi, batch['label'].tolist(), self.scores, (~batch['random']).tolist()
+            yield int(bi), batch['label'].tolist(), self.scores, (~batch['random']).tolist()
 
     def it_cum_sim_batches(self) -> Generator[tuple[int, list[int], list[float], list[bool]], None, None]:
         scores = np.array([])
