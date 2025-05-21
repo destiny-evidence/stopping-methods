@@ -86,7 +86,7 @@ def produce_rankings(
         for repeat in range(1, num_repeats + 1):
             logger.info(f'Running for repeat cycle {repeat}...')
 
-            target_key = f'{dataset.KEY}-{num_random_init}-{repeat}-best'
+            target_key = f'{dataset.KEY}-{initial_holdout}-{num_random_init}-{repeat}-best'
             logger.info(f'Running ranker {target_key}...')
             logger.debug(f'Checking for {settings.ranking_data_path / f'{target_key}.json'}')
             if ((settings.ranking_data_path / f'{target_key}.json').exists()):
@@ -127,7 +127,7 @@ def produce_rankings(
             for repeat in range(1, num_repeats + 1):
                 logger.info(f'Running for repeat cycle {repeat}...')
                 ranker.attach_dataset(dataset)
-                target_key = f'{dataset.KEY}-{repeat}-{ranker.key}'
+                target_key = f'{dataset.KEY}-{initial_holdout}-{repeat}-{ranker.key}'
                 logger.info(f'Running ranker {target_key}...')
                 logger.debug(f'Checking for {settings.ranking_data_path / f'{target_key}.json'}')
                 if (settings.ranking_data_path / f'{target_key}.json').exists():

@@ -62,14 +62,36 @@ Requires python 3.12–3.14
 
 ```
 # To pre-compute rankings run
-PYTHONPATH=. python simulation/main.py precompute-bm-rankings --models svm --models lightgbm --models sgd --models logreg --dyn-max-batch-size=2000 --num-repeats 1 --num-random-init 500 --min-dataset-size 1000 --min-inclusion-rate 0.01 --tuning-interval 3
-PYTHONPATH=. python simulation/main.py precompute-bm-rankings --models svm --models lightgbm --models sgd --models logreg --batch-strategy FIXED --stat-batch-size 25 --num-repeats 1 --num-random-init 500 --min-dataset-size 1000 --min-inclusion-rate 0.01 --tuning-interval 8
+PYTHONPATH=. python simulation/rankings.py DIRECT --models trans-rank --models svm --models lightgbm --models sgd --models logreg --dyn-max-batch-size=2000 --num-repeats 1 --num-random-init 500 --min-dataset-size 1000 --min-inclusion-rate 0.01 --tuning-interval 3
+PYTHONPATH=. python simulation/rankings.py DIRECT --models trans-rank --models svm --models lightgbm --models sgd --models logreg --batch-strategy FIXED --stat-batch-size 25 --num-repeats 1 --num-random-init 500 --min-dataset-size 1000 --min-inclusion-rate 0.01 --tuning-interval 8
 
 # To run simulation
 PYTHONPATH=. python simulation/simulate.py FIXED
 
 # To run evaluation
 PYTHONPATH=. python simulation/evaluation.py 
+```
+
+### HPC setup
+```bash
+cd workspace
+git clone git@github.com:destiny-evidence/stopping-methods.git
+cd stopping-methods
+module load anaconda/2024.10
+# verify we are really using the correct python
+which python
+python --version
+# set up virtualenv
+python -m venv data/venv
+source data/venv/bin/activate
+pip install -r requirements.txt
+
+# pre-compute rankings
+PYTHONPATH=. python simulation/rank.py SLURM --models trans-rank --models svm --models lightgbm --models sgd  --models logreg \
+                                --dyn-min-batch-size 25 --dyn-max-batch-size 200 --dyn-min-batch-incl 2 \
+                                --num-random-init 500 --min-dataset-size 1000 --num-repeats 3 \
+                                --min-inclusion-rate 0.01 --tuning-interval 4 --store-feather \
+                                --slurm-user email
 ```
 
 ## Roadmap
