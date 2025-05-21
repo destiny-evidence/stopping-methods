@@ -254,7 +254,7 @@ echo "Python version is $(python --version)"
 DATASETS=("{'" "'.join(datasets)}")
 
 python simulation/rank.py SINGLE \\
-               --mode_rank {mode_rank.value} \\
+               --mode-rank {mode_rank.value} \\
                --dataset-key ${{DATASETS[$SLURM_ARRAY_TASK_ID]}} \\
                {' '.join(model_args)} \\
                --num-repeats {num_repeats} \\
