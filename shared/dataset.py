@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 from .text_utils import process_text_aggressive
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('dataset')
 
 
 class Record(BaseModel):
@@ -232,6 +232,7 @@ class Dataset:
                     incl_idxs = list(set(incl_idxs) - set(init_idxs))[:min_incl - num_incl]
                     idxs = incl_idxs + idxs  # FIXME: potentially we are pushing out a previously included one...
 
+        logger.info(f'Picking the next {batch_size} samples from a random set of unseen records')
         idxs = idxs[:batch_size]
         random.shuffle(idxs)  # seems redundant, but needed when we injected something
         return idxs
@@ -244,6 +245,7 @@ class Dataset:
         if (self.last_batch == 0
                 or (self.inject_random_batch_every > 0
                     and (self.last_batch % self.inject_random_batch_every) == 0)):
+            logger.info(f'Preparing random batch  @ {self.last_batch:,} % {self.inject_random_batch_every}!')
             idxs = self.get_random_unseen_sample(self.num_random_init if self.last_batch == 0 else None)
             # add our batch data to the table
             batch_i = self.last_batch + 1

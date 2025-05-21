@@ -8,7 +8,7 @@ from .generic_csv import GenericCollection as GenericCollectionCSV, read_csv_dat
 from .generic_jsonl import GenericCollection as GenericCollectionJSON, read_jsonl_dataset
 from .generic_paired_ris import GenericPairedRISCollection, read_paired_ris_dataset
 
-logger = logging.getLogger('datasets')
+logger = logging.getLogger('loaders')
 
 # Collection = (SynergyDataset
 #               | GenericCollectionCSV

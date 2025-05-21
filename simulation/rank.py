@@ -84,7 +84,7 @@ def produce_rankings(
 
     def rank_using_best(dataset: Dataset):
         for repeat in range(1, num_repeats + 1):
-            logger.info(f'Running for repeat cycle {repeat}...')
+            logger.info(f'Running best model strategy for repeat cycle {repeat}...')
 
             target_key = f'{dataset.KEY}-{initial_holdout}-{num_random_init}-{repeat}-best'
             logger.info(f'Running ranker {target_key}...')
@@ -214,13 +214,13 @@ def produce_rankings(
         with open('simulation/rank.slurm', 'w') as slurm_file:
             slurm_file.write(f"""#!/bin/bash
 
-#SBATCH --time=2:00:00
+#SBATCH --time=6:00:00
 #SBATCH --qos=gpushort
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1  # number of GPUs
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=12
-#SBATCH --mem=12G
+#SBATCH --cpus-per-task=5
+#SBATCH --mem=8G
 #SBATCH --oversubscribe  # use non-utilized GPUs on busy nodes
 #SBATCH --mail-type=END,FAIL  # 'NONE', 'BEGIN', 'END', 'FAIL', 'REQUEUE', 'ALL'
 #SBATCH --mail-user={slurm_user}
