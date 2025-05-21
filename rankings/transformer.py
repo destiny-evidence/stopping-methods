@@ -162,14 +162,17 @@ class TransRanker(AbstractRanker):
 
     @classmethod
     def ensure_offline_models(cls, models: list[str] | None = None):
-        from huggingface_hub import hf_hub_download
+        from huggingface_hub import snapshot_download
         models = models or cls.DEFAULT_MODELS
 
         for model in models:
             logger.info(f'Downloading model: {model} so it is available offline in {settings.model_data_path}')
-            hf_hub_download(repo_type='model',
-                            repo_id=model,
-                            cache_dir=settings.model_data_path)
+            snapshot_download(
+                repo_id=model,
+                repo_type='model',
+                cache_dir=settings.model_data_path,
+                force_download=False,
+            )
 
     @property
     def key(self):
