@@ -168,7 +168,7 @@ class TransRanker(AbstractRanker):
         for model in models:
             logger.info(f'Downloading model: {model} so it is available offline in {settings.model_data_path}')
             hf_hub_download(repo_type='model',
-                            model_name=model,
+                            repo_id=model,
                             cache_dir=settings.model_data_path)
 
     @property
