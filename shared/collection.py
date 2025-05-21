@@ -2,12 +2,11 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Generator
 
-from pydantic import BaseModel
-
 from shared.config import settings
 from shared.dataset import Dataset
 
-class AbstractCollection(BaseModel, ABC):
+
+class AbstractCollection(ABC):
     # Name of the folder for this collection that is unique across all collections as a reference key
     BASE: str
 

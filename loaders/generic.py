@@ -3,7 +3,7 @@ from shared.dataset import Dataset, Record
 
 
 class GenericCollection(AbstractCollection):
-    BASE = 'generic'
+    BASE: str = 'generic'
 
     def fetch_collection(self):
         pass  # we assume the raw files were put in the directory already
