@@ -38,9 +38,9 @@ class GenericCollection(AbstractCollection):
 def read_csv_dataset(key: str) -> Dataset:
     base = GenericCollection.BASE
     base_dir = settings.raw_data_path / base
-    base_name = key[len(base):]
+    base_name = key[len(base) + 1:]
     file_path = base_dir / f'{base_name}.csv'
     if not file_path.exists():
-        raise AssertionError(f'Files for {key} not valid!')
+        raise AssertionError(f'Files for {key} not valid: {file_path}')
 
     return read_file(file_path, key)

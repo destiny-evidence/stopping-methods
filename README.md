@@ -87,7 +87,8 @@ source data/venv/bin/activate
 pip install -r requirements.txt
 
 # pre-compute rankings
-PYTHONPATH=. python simulation/rank.py SLURM --models trans-rank --models svm --models lightgbm --models sgd  --models logreg \
+PYTHONPATH=. python simulation/rank.py SLURM \
+                                --models trans-rank --models svm --models lightgbm --models sgd  --models logreg \
                                 --dyn-min-batch-size 25 --dyn-max-batch-size 200 --dyn-min-batch-incl 2 \
                                 --num-random-init 500 --min-dataset-size 1000 --num-repeats 3 \
                                 --min-inclusion-rate 0.01 --tuning-interval 4 --store-feather \
