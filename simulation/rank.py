@@ -281,7 +281,7 @@ python rank.py SINGLE \\
                --{'' if use_fine_tuning else 'no-'}use-fine-tuning \\
                --{'' if predict_on_all else 'no-'}predict_on_all 
 """)
-            subprocess.run(['sbatch', 'simulation/rank.slurm'])
+        subprocess.run(['sbatch', 'simulation/rank.slurm'])
 
 
 if __name__ == '__main__':
