@@ -34,7 +34,7 @@ class GenericPairedRISCollection(AbstractCollection):
             if not incl and not excl:
                 logger.warning(f'Ignoring RIS file due to wrong naming convention: {file}')
                 continue
-            base = file.stem[:-8]
+            base = file.stem[:-9]
             pairs[base]['include' if incl else 'exclude'] = file
 
         logger.info(f'Found {len(pairs)} pairs')
@@ -57,8 +57,8 @@ def read_paired_ris_dataset(key: str) -> Dataset:
     base = GenericPairedRISCollection.BASE
     base_dir = settings.raw_data_path / base
     base_name = key[len(base):]
-    file_incl = base_dir / f'{base_name}_includes.ris'
-    file_excl = base_dir / f'{base_name}_excludes.ris'
+    file_incl = base_dir / f'{base_name}_INCLUDES.ris'
+    file_excl = base_dir / f'{base_name}_EXCLUDES.ris'
     if not (file_incl.exists() and file_excl.exists()):
         raise AssertionError(f'Files for {key} not valid!')
 

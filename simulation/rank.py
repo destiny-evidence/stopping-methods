@@ -254,14 +254,14 @@ echo "Python version is $(python --version)"
 DATASETS=("{'" "'.join(datasets)}")
 
 python rank.py SINGLE \\
-               --mode_rank {mode_rank} \\
+               --mode_rank {mode_rank.value} \\
                --dataset-key ${{DATASETS[$SLURM_ARRAY_TASK_ID]}} \\
-               {model_args} \\
+               {' '.join(model_args)} \\
                --num-repeats {num_repeats} \\
                --min-dataset-size {min_dataset_size} \\
                --min-inclusion-rate {min_inclusion_rate} \\
                --num-random-init {num_random_init} \\
-               --batch-strategy {batch_strategy} \\
+               --batch-strategy {batch_strategy.value} \\
                --stat-batch-size {stat_batch_size} \\
                --dyn-min-batch-incl {dyn_min_batch_incl} \\
                --dyn-min-batch-size {dyn_min_batch_size} \\
