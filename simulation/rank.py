@@ -240,7 +240,7 @@ module load cuda
 source "{venv_path}/bin/activate"
 
 # Python env vars
-export PYTHONPATH=$PYTHONPATH:$DIR_CODE
+export PYTHONPATH=$PYTHONPATH:{os.getcwd()}
 export PYTHONUNBUFFERED=1
 
 # Environment variables for script
@@ -253,7 +253,7 @@ echo "Python version is $(python --version)"
 
 DATASETS=("{'" "'.join(datasets)}")
 
-python rank.py SINGLE \\
+python simulation/rank.py SINGLE \\
                --mode_rank {mode_rank.value} \\
                --dataset-key ${{DATASETS[$SLURM_ARRAY_TASK_ID]}} \\
                {' '.join(model_args)} \\
