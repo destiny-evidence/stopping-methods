@@ -56,11 +56,13 @@ class GenericPairedRISCollection(AbstractCollection):
 def read_paired_ris_dataset(key: str) -> Dataset:
     base = GenericPairedRISCollection.BASE
     base_dir = settings.raw_data_path / base
-    base_name = key[len(base):]
+    base_name = key[len(base) + 1:]
     file_incl = base_dir / f'{base_name}_INCLUDES.ris'
     file_excl = base_dir / f'{base_name}_EXCLUDES.ris'
     if not (file_incl.exists() and file_excl.exists()):
-        raise AssertionError(f'Files for {key} not valid!')
+        raise AssertionError(f'Files for {key} not valid: \n'
+                             f'{file_incl}\n'
+                             f'{file_excl}')
 
     included = list(read_ris_file(file_incl, label_abs=True))
     excluded = list(read_ris_file(file_excl, label_abs=False, idx_offset=len(included)))
