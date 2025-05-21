@@ -190,17 +190,27 @@ def produce_rankings(
             rank_using_all(dataset=dataset_)
 
     elif mode_exec == ExecutionMode.SLURM:
-        venv_path = settings.venv_path.absolute().resolve()
-        log_path = settings.log_data_path.absolute().resolve()
-        log_path.mkdir(parents=True, exist_ok=True)
+        from rankings import TransRanker
+
         if slurm_user is None:
             raise AssertionError('Must set slurm_user in single mode')
 
-        # datasets = [ds.KEY for ds in it_filtered_datasets()]
-        datasets = ['a', 'b', 'c']
+        # Ensure directories are ready
+        venv_path = settings.venv_path.absolute().resolve()
+        log_path = settings.log_data_path.absolute().resolve()
+        log_path.mkdir(parents=True, exist_ok=True)
+
+        # Ensure models are downloaded
+        TransRanker.ensure_offline_models()
+        prepare_nltk()
+
+        # Prepare some variables to use in the batch file
+        datasets = [ds.KEY for ds in it_filtered_datasets()]
         model_args = [f'--models {m}' for m in models]
         rand = f'--random-state {random_state} \\' if random_state is not None else ''
 
+        # Write slurm batch file
+        # For information on array jobs, see: https://hpcdocs.hpc.arizona.edu/running_jobs/batch_jobs/array_jobs/
         with open('simulation/rank.slurm', 'w') as slurm_file:
             slurm_file.write(f"""#!/bin/bash
 

@@ -28,6 +28,14 @@ warnings.filterwarnings('ignore', category=UndefinedMetricWarning)
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+DEFAULT_MODELS = [
+    'prajjwal1/bert-tiny',
+    # 'allenai/scibert_scivocab_uncased',
+    # 'climatebert/distilroberta-base-climate-f',
+    # 'malteos/scincl',
+    # 'distilbert-base',
+]
+
 
 def evaluate(
         # expecting 1D array for y_true and y_pred
@@ -68,7 +76,7 @@ class CustomTrainingArguments(TrainingArguments):
         default=None,
         metadata={'help': 'The weights for each class to be passed to the loss function'})
     model_name: str | None = field(
-        default='prajjwal1/bert-tiny',
+        default=DEFAULT_MODELS[0],
         metadata={'help': 'Name of the huggingface model'})
 
 
@@ -133,6 +141,7 @@ def compute_class_weights(labels: np.ndarray) -> torch.Tensor:
 
 class TransRanker(AbstractRanker):
     name: str = 'trans-rank'
+    DEFAULT_MODELS = DEFAULT_MODELS
 
     def __init__(self,
                  model_params: dict[str, Any] | None = None,
@@ -145,17 +154,22 @@ class TransRanker(AbstractRanker):
         super().__init__(train_mode, **kwargs)
         self.min_batch_size = min_batch_size
         self.max_batch_size = max_batch_size
-        self.models = models or [
-            # 'allenai/scibert_scivocab_uncased',
-            # 'climatebert/distilroberta-base-climate-f',
-            # 'malteos/scincl',
-            # 'distilbert-base',
-            'prajjwal1/bert-tiny'
-        ]
+        self.models = models or self.DEFAULT_MODELS
         self.model_params = model_params or {}
         self.model: CustomTrainer | None = None
         self.tuning_trials = tuning_trials
         self.test_split = test_split
+
+    @classmethod
+    def ensure_offline_models(cls, models: list[str] | None = None):
+        from huggingface_hub import hf_hub_download
+        models = models or cls.DEFAULT_MODELS
+
+        for model in models:
+            logger.info(f'Downloading model: {model} so it is available offline in {settings.model_data_path}')
+            hf_hub_download(repo_type='model',
+                            model_name=model,
+                            cache_dir=settings.model_data_path)
 
     @property
     def key(self):
@@ -176,7 +190,7 @@ class TransRanker(AbstractRanker):
             'save_strategy': 'no',
             'use_class_weights': 1,
             'class_weights': weights,
-            'model_name': 'prajjwal1/bert-tiny',
+            'model_name': self.DEFAULT_MODELS[0],
             'learning_rate': 1e-4,
             'per_device_train_batch_size': 4,
             'per_device_eval_batch_size': 12,
