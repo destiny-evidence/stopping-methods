@@ -30,6 +30,14 @@ class Settings(BaseSettings):
     def model_data_path(self) -> Path:
         return (self.DATA_PATH / 'models').absolute().resolve()
 
+    @property
+    def log_data_path(self) -> Path:
+        return (self.DATA_PATH / 'logs').absolute().resolve()
+
+    @property
+    def venv_path(self) -> Path:
+        return (self.DATA_PATH / 'venv').absolute().resolve()
+
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s: %(message)s', level=logging.DEBUG)
 logger = logging.getLogger('base')

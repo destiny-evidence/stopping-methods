@@ -77,6 +77,7 @@ def best_model_ranking(dataset: Dataset,
                 'params': best_ranker.get_params(preview=False),
                 'recall': best_rec,
                 'precision': best_prec,
+                'f1': best_f1,
                 'batch_size': dataset.get_next_batch_size(),
                 'batch_i': dataset.last_batch,
             })

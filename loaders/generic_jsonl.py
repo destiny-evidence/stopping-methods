@@ -1,5 +1,16 @@
+from pathlib import Path
+
 from shared.collection import AbstractCollection
+from shared.config import settings
 from shared.dataset import Dataset, Record
+
+
+def read_file(file_path: Path, key: str) -> Dataset:
+    with open(file_path, 'r') as f:
+        records = [Record.model_validate_json(line) for line in f]
+        return Dataset(key=key,
+                       labels=[rec.label_abs for rec in records],
+                       texts=[(rec.title or '') + ' ' + (rec.abstract or '') for rec in records])
 
 
 class GenericCollection(AbstractCollection):
@@ -13,8 +24,15 @@ class GenericCollection(AbstractCollection):
 
     def generate_datasets(self):
         for file in self.raw_folder.glob('*.jsonl'):
-            with open(file, 'r') as f:
-                records = [Record.model_validate_json(line) for line in f]
-                yield Dataset(key=f'generic-jsonl-{file.stem}',
-                              labels=[rec.label_abs for rec in records],
-                              texts=[(rec.title or '') + ' ' + (rec.abstract or '') for rec in records])
+            yield read_file(file, f'{self.BASE}-{file.stem}')
+
+
+def read_jsonl_dataset(key: str) -> Dataset:
+    base = GenericCollection.BASE
+    base_dir = settings.raw_data_path / base
+    base_name = key[len(base):]
+    file_path = base_dir / f'{base_name}.jsonl'
+    if not file_path.exists():
+        raise AssertionError(f'Files for {key} not valid!')
+
+    return read_file(file_path, key)

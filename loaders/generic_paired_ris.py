@@ -7,6 +7,7 @@ from collections import defaultdict
 import rispy
 
 from shared.collection import AbstractCollection
+from shared.config import settings
 from shared.dataset import Dataset, Record
 
 logger = logging.getLogger(__name__)
@@ -46,10 +47,29 @@ class GenericPairedRISCollection(AbstractCollection):
             excluded = list(read_ris_file(files['exclude'], label_abs=False, idx_offset=len(included)))
 
             yield Dataset(
-                key=f'generic-paired-ris-{pair}',
+                key=f'{self.BASE}-{pair}',
                 labels=[rec.label_abs for rec in included + excluded],
                 texts=[(rec.title or '') + ' ' + (rec.abstract or '') for rec in included + excluded]
             )
+
+
+def read_paired_ris_dataset(key: str) -> Dataset:
+    base = GenericPairedRISCollection.BASE
+    base_dir = settings.raw_data_path / base
+    base_name = key[len(base):]
+    file_incl = base_dir / f'{base_name}_includes.ris'
+    file_excl = base_dir / f'{base_name}_excludes.ris'
+    if not (file_incl.exists() and file_excl.exists()):
+        raise AssertionError(f'Files for {key} not valid!')
+
+    included = list(read_ris_file(file_incl, label_abs=True))
+    excluded = list(read_ris_file(file_excl, label_abs=False, idx_offset=len(included)))
+
+    return Dataset(
+        key=key,
+        labels=[rec.label_abs for rec in included + excluded],
+        texts=[(rec.title or '') + ' ' + (rec.abstract or '') for rec in included + excluded]
+    )
 
 
 def read_ris_file(filepath: Path,

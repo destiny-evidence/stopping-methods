@@ -1,10 +1,21 @@
 import logging
+from pathlib import Path
 
 import pandas as pd
 from shared.collection import AbstractCollection
+from shared.config import settings
 from shared.dataset import Dataset
 
 logger = logging.getLogger(__name__)
+
+
+def read_file(file_path: Path, key: str) -> Dataset:
+    df = pd.read_csv(file_path).fillna('')
+    return Dataset(
+        key=key,
+        labels=[rec['label_abs'] for _, rec in df.iterrows()],
+        texts=[(rec['title'] or '') + ' ' + (rec['abstract'] or '') for _, rec in df.iterrows()]
+    )
 
 
 class GenericCollection(AbstractCollection):
@@ -21,9 +32,15 @@ class GenericCollection(AbstractCollection):
         logger.info(f'Searching for CSVs in {self.raw_folder}')
         logger.info(f'Found files: {files}')
         for file in files:
-            df = pd.read_csv(file).fillna('')
-            yield Dataset(
-                key=f'generic-csv-{file.stem}',
-                labels=[rec['label_abs'] for _, rec in df.iterrows()],
-                texts=[(rec['title'] or '') + ' ' + (rec['abstract'] or '') for _, rec in df.iterrows()]
-            )
+            yield read_file(file, f'generic-csv-{file.stem}')
+
+
+def read_csv_dataset(key: str) -> Dataset:
+    base = GenericCollection.BASE
+    base_dir = settings.raw_data_path / base
+    base_name = key[len(base):]
+    file_path = base_dir / f'{base_name}.csv'
+    if not file_path.exists():
+        raise AssertionError(f'Files for {key} not valid!')
+
+    return read_file(file_path, key)
