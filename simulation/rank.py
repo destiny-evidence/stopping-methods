@@ -219,14 +219,14 @@ def produce_rankings(
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1  # number of GPUs
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=5
-#SBATCH --mem=8G
+#SBATCH --cpus-per-task=12
+#SBATCH --mem=12G
 #SBATCH --oversubscribe  # use non-utilized GPUs on busy nodes
 #SBATCH --mail-type=END,FAIL  # 'NONE', 'BEGIN', 'END', 'FAIL', 'REQUEUE', 'ALL'
+#SBATCH --mail-user={slurm_user}
 #SBATCH --output={log_path}/%A_%a.out
 #SBATCH --error={log_path}/%A_%a.err
 #SBATCH --chdir={os.getcwd()}
-#SBATCH --mail-user={slurm_user}
 #SBATCH --array=1-{len(datasets)}
 
 # Set this to exit the script when an error occurs

@@ -74,7 +74,7 @@ PYTHONPATH=. python simulation/evaluation.py
 
 ### HPC setup
 ```bash
-cd workspace
+cd /p/tmp/user/
 git clone git@github.com:destiny-evidence/stopping-methods.git
 cd stopping-methods
 module load anaconda/2024.10
