@@ -86,6 +86,15 @@ def produce_rankings(
         prepare_nltk()
 
     def rank_using_best(dataset: Dataset):
+        logger.info('Rank using best model, initialising dataset...')
+        dataset.init(num_random_init=num_random_init, batch_strategy=batch_strategy,
+                     stat_batch_size=stat_batch_size, dyn_min_batch_size=dyn_min_batch_size,
+                     dyn_max_batch_size=dyn_max_batch_size, inject_random_batch_every=inject_random_batch_every,
+                     dyn_min_batch_incl=dyn_min_batch_incl, dyn_growth_rate=dyn_growth_rate,
+                     initial_holdout=initial_holdout, grow_init_batch=grow_init_batch,
+                     ngram_range=(1, max_ngram), max_features=max_vocab, min_df=min_df)
+
+        logger.info('Rank using best model, start loop...')
         for repeat in range(1, num_repeats + 1):
             logger.info(f'Running best model strategy for repeat cycle {repeat}...')
 
@@ -95,14 +104,6 @@ def produce_rankings(
             if ((settings.ranking_data_path / f'{target_key}.json').exists()):
                 logger.info(f' > Skipping {target_key}; simulation already exists')
                 continue
-
-            if repeat == 1:
-                dataset.init(num_random_init=num_random_init, batch_strategy=batch_strategy,
-                             stat_batch_size=stat_batch_size, dyn_min_batch_size=dyn_min_batch_size,
-                             dyn_max_batch_size=dyn_max_batch_size, inject_random_batch_every=inject_random_batch_every,
-                             dyn_min_batch_incl=dyn_min_batch_incl, dyn_growth_rate=dyn_growth_rate,
-                             initial_holdout=initial_holdout, grow_init_batch=grow_init_batch,
-                             ngram_range=(1, max_ngram), max_features=max_vocab, min_df=min_df)
 
             infos = bm_ranking(dataset=dataset,
                                models=models,
@@ -126,6 +127,15 @@ def produce_rankings(
             dataset.reset()
 
     def rank_using_all(dataset: Dataset):
+        logger.info('Rank using all, initialising dataset...')
+        dataset.init(num_random_init=num_random_init, batch_strategy=batch_strategy,
+                     stat_batch_size=stat_batch_size, dyn_min_batch_size=dyn_min_batch_size,
+                     dyn_max_batch_size=dyn_max_batch_size, inject_random_batch_every=inject_random_batch_every,
+                     dyn_min_batch_incl=dyn_min_batch_incl, dyn_growth_rate=dyn_growth_rate,
+                     initial_holdout=initial_holdout, grow_init_batch=grow_init_batch,
+                     ngram_range=(1, max_ngram), max_features=max_vocab, min_df=min_df)
+
+        logger.info('Rank using all, start loop...')
         for ranker in it_rankers(models=models, use_fine_tuning=use_fine_tuning):
             for repeat in range(1, num_repeats + 1):
                 logger.info(f'Running for repeat cycle {repeat} for ranker {ranker.name}...')
@@ -139,6 +149,7 @@ def produce_rankings(
 
                 ranker.init()
 
+                logger.info('Start loop until no more unseen data...')
                 while dataset.has_unseen:
                     logger.info(f'Running for batch {dataset.last_batch}...')
                     dataset.prepare_next_batch()

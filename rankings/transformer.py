@@ -147,7 +147,7 @@ class TransRanker(AbstractRanker):
                  model_params: dict[str, Any] | None = None,
                  min_batch_size: int = 2, max_batch_size: int = 32,
                  models: list[str] | None = None,
-                 tuning_trials: int = 15,
+                 tuning_trials: int = 20,
                  test_split: float = 0.1,
                  train_mode: TrainMode = TrainMode.RESET,
                  **kwargs: dict[str, Any]):
