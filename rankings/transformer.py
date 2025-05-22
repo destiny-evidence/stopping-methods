@@ -207,7 +207,7 @@ class TransRanker(AbstractRanker):
             base |= best_params
 
         if trial:
-            batch_size = trial.suggest_int('per_device_batch_size', self.min_batch_size, self.max_batch_size)
+            batch_size = trial.suggest_int('per_device_train_batch_size', self.min_batch_size, self.max_batch_size)
             base |= {
                 'model_name': trial.suggest_categorical('model_name', self.models),
                 'use_class_weights': trial.suggest_categorical('use_class_weights', [0, 1]),
@@ -279,6 +279,7 @@ class TransRanker(AbstractRanker):
         return y_preds[:, 1]
 
     def _train(self, args: CustomTrainingArguments, dataset: Dataset):
+        logger.debug(f'Training fresh transformer model using "{args.model_name}"')
         model = AutoModelForSequenceClassification.from_pretrained(
             args.model_name,
             cache_dir=settings.model_data_path,
@@ -293,6 +294,7 @@ class TransRanker(AbstractRanker):
 
     def objective(self, idxs: list[int]) -> Callable[[Trial], float]:
         def run_trial(trial: Trial) -> float:
+            logger.debug(f'Running tuning trial {trial.number}')
             training_args = self.args(
                 trial=trial,
                 weights=compute_class_weights(self.dataset.df.loc[idxs]['label']))

@@ -208,6 +208,7 @@ class Dataset:
         batch_size = self.get_next_batch_size() if sample_size is None else sample_size
         if self.last_batch == 0:
             if self.initial_holdout > 0:
+                logger.debug(f'Preparing initial holdout sample of length {self.initial_holdout:,}')
                 holdout_idxs = self.unseen_data[self.unseen_data['label'] == 1].index.tolist()
                 random.shuffle(holdout_idxs)
                 self.initial_holdout_idxs = holdout_idxs[:self.initial_holdout]
@@ -238,6 +239,7 @@ class Dataset:
         return idxs
 
     def prepare_next_batch(self) -> None:
+        logger.debug(f'Called prepare_next_batch on "{self.KEY}", last batch is: {self.last_batch}')
         if self.n_seen >= self.n_total:
             raise StopIteration
 

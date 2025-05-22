@@ -5,6 +5,8 @@ from enum import Enum
 from typing import Annotated, Generator
 
 import typer
+from pyarrow import _dataset
+
 from rankings import assert_models, it_rankers
 from rankings.use_best import best_model_ranking as bm_ranking
 from shared.config import settings
@@ -125,7 +127,7 @@ def produce_rankings(
     def rank_using_all(dataset: Dataset):
         for ranker in it_rankers(models=models, use_fine_tuning=use_fine_tuning):
             for repeat in range(1, num_repeats + 1):
-                logger.info(f'Running for repeat cycle {repeat}...')
+                logger.info(f'Running for repeat cycle {repeat} for ranker {ranker.name}...')
                 ranker.attach_dataset(dataset)
                 target_key = f'{dataset.KEY}-{initial_holdout}-{repeat}-{ranker.key}'
                 logger.info(f'Running ranker {target_key}...')
@@ -174,23 +176,32 @@ def produce_rankings(
             yield _dataset
 
     if mode_exec == ExecutionMode.DIRECT:
+        logger.info(f'Running simulations!')
         for dataset_ in it_filtered_datasets():
+            logger.info(f'Running simulations for dataset {dataset_.KEY}!')
             if mode_rank == RankingProcess.BEST:
+                logger.debug(f'Running simulations for dataset {dataset_.KEY} using the best model strategy!')
                 rank_using_best(dataset=dataset_)
             elif mode_rank == RankingProcess.ALL:
+                logger.debug(f'Running simulations for dataset {dataset_.KEY} using all models!')
                 rank_using_all(dataset=dataset_)
 
     elif mode_exec == ExecutionMode.SINGLE:
+        logger.info(f'Running simulation on dataset: {dataset_key}')
         if dataset_key is None:
             raise AssertionError('Need to set dataset key in single mode')
+
         dataset_ = read_dataset(key=dataset_key)
         if mode_rank == RankingProcess.BEST:
+            logger.debug(f'Running best model simulation on dataset: {dataset_key}')
             rank_using_best(dataset=dataset_)
         elif mode_rank == RankingProcess.ALL:
+            logger.debug(f'Running all models simulation on dataset: {dataset_key}')
             rank_using_all(dataset=dataset_)
 
     elif mode_exec == ExecutionMode.SLURM:
         from rankings import TransRanker
+        logger.info(f'Preparing slurm script and submitting job!')
 
         if slurm_user is None:
             raise AssertionError('Must set slurm_user in single mode')
@@ -201,6 +212,7 @@ def produce_rankings(
         log_path.mkdir(parents=True, exist_ok=True)
 
         # Ensure models are downloaded
+        logger.info(f'Making sure all models are available offline!')
         TransRanker.ensure_offline_models()
         prepare_nltk()
 
@@ -223,7 +235,7 @@ def produce_rankings(
 #SBATCH --mem=8G
 #SBATCH --oversubscribe  # use non-utilized GPUs on busy nodes
 #SBATCH --mail-type=END,FAIL  # 'NONE', 'BEGIN', 'END', 'FAIL', 'REQUEUE', 'ALL'
-#SBATCH --mail-user={slurm_user}
+#SBATCH --mail-user="{slurm_user}"
 #SBATCH --output={log_path}/%A_%a.out
 #SBATCH --error={log_path}/%A_%a.err
 #SBATCH --chdir={os.getcwd()}
@@ -255,7 +267,7 @@ DATASETS=("{'" "'.join(datasets)}")
 
 python simulation/rank.py SINGLE \\
                --mode-rank {mode_rank.value} \\
-               --dataset-key ${{DATASETS[$SLURM_ARRAY_TASK_ID]}} \\
+               --dataset-key "${{DATASETS[$SLURM_ARRAY_TASK_ID]}}" \\
                {' '.join(model_args)} \\
                --num-repeats {num_repeats} \\
                --min-dataset-size {min_dataset_size} \\
