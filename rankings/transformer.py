@@ -286,7 +286,7 @@ class TransRanker(AbstractRanker):
             num_labels=2,
             ignore_mismatched_sizes=True)
 
-        self.model = Trainer(model=model, args=args, train_dataset=dataset)
+        self.model = CustomTrainer(model=model, args=args, train_dataset=dataset)
         result = self.model.train(resume_from_checkpoint=None)
 
         logger.debug(f'Time: {result.metrics['train_runtime']:.2f}')
