@@ -246,7 +246,7 @@ def produce_rankings(
             sbatch_args |= {
                 'gres': 'gpu:1',  # number of GPUs
                 'partition': 'gpu',
-                'qos': 'gpushort',  # or gpumedium (has no MaxJobsPU but half priority, see `$ sacctmgr show qos`)
+                'qos': 'gpumedium',  # or gpushort (has MaxJobsPU=2 but double priority, see `$ sacctmgr show qos`)
                 'cpus-per-task': 5,
             }
         else:
