@@ -71,6 +71,7 @@ def produce_rankings(
         use_fine_tuning: bool = False,
         predict_on_all: bool = True,
         init_nltk: bool = False,
+        slurm_gpu: bool = False,
         slurm_user: Annotated[str | None, typer.Option(help='email address to notify when done')] = None,
 ):
     logger.info(f'Data path: {settings.DATA_PATH}')
@@ -220,26 +221,38 @@ def produce_rankings(
         datasets = [ds.KEY for ds in it_filtered_datasets()]
         model_args = [f'--models {m}' for m in models]
         rand = f'--random-state {random_state} \\' if random_state is not None else ''
-
+        sbatch_args = {
+            'time': '6:00:00',
+            'nodes': '1',
+            'mem': '8G',
+            'mail-user': f'"{slurm_user}"',
+            'output': f'{log_path}/%A_%a.out',
+            'error': f'{log_path}/%A_%a.err',
+            'chdir': os.getcwd(),
+            'array': f'1-{len(datasets) + 1}'
+        }
+        if slurm_gpu:
+            sbatch_args |= {
+                'gres': 'gpu:1',  # number of GPUs
+                'partition': 'gpu',
+                'qos': 'gpushort',
+                'cpus-per-task': 5,
+            }
+        else:
+            sbatch_args |= {
+                'cpus-per-task': 12,
+                'partition': 'standard',
+                'qos': 'short',
+            }
+        sbatch = [f'#SBATCH --{key}={value}' for key, value in sbatch_args.items()]
         # Write slurm batch file
         # For information on array jobs, see: https://hpcdocs.hpc.arizona.edu/running_jobs/batch_jobs/array_jobs/
         with open('simulation/rank.slurm', 'w') as slurm_file:
             slurm_file.write(f"""#!/bin/bash
 
-#SBATCH --time=6:00:00
-#SBATCH --qos=gpushort
-#SBATCH --partition=gpu
-#SBATCH --gres=gpu:1  # number of GPUs
-#SBATCH --nodes=1
-#SBATCH --cpus-per-task=5
-#SBATCH --mem=8G
+{sbatch}
 #SBATCH --oversubscribe  # use non-utilized GPUs on busy nodes
 #SBATCH --mail-type=END,FAIL  # 'NONE', 'BEGIN', 'END', 'FAIL', 'REQUEUE', 'ALL'
-#SBATCH --mail-user="{slurm_user}"
-#SBATCH --output={log_path}/%A_%a.out
-#SBATCH --error={log_path}/%A_%a.err
-#SBATCH --chdir={os.getcwd()}
-#SBATCH --array=1-{len(datasets)}
 
 # Set this to exit the script when an error occurs
 set -e
