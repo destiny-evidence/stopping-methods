@@ -261,7 +261,7 @@ def produce_rankings(
         with open('simulation/rank.slurm', 'w') as slurm_file:
             slurm_file.write(f"""#!/bin/bash
 
-{sbatch}
+{'\n'.join(sbatch)}
 #SBATCH --oversubscribe  # use non-utilized GPUs on busy nodes
 #SBATCH --mail-type=END,FAIL  # 'NONE', 'BEGIN', 'END', 'FAIL', 'REQUEUE', 'ALL'
 
