@@ -69,7 +69,7 @@ def produce_rankings(
         initial_holdout: int = 0,
         grow_init_batch: bool = True,
         use_fine_tuning: bool = False,
-        predict_on_all: bool = True,
+        predict_on_all: bool = False,
         init_nltk: bool = False,
         slurm_gpu: bool = False,
         slurm_user: Annotated[str | None, typer.Option(help='email address to notify when done')] = None,
@@ -231,7 +231,7 @@ def produce_rankings(
         # Prepare some variables to use in the batch file
         datasets = [ds.KEY for ds in it_filtered_datasets()]
         model_args = [f'--models {m}' for m in models]
-        rand = f'--random-state {random_state} \\' if random_state is not None else ''
+        rand = f'--random-state {random_state}' if random_state is not None else ''
         sbatch_args = {
             'time': '12:00:00',
             'nodes': '1',
@@ -309,13 +309,13 @@ python simulation/rank.py SINGLE \\
                --max-ngram {max_ngram} \\
                --min-df {min_df} \\
                --tuning-interval {tuning_interval} \\
-               {rand}
+               {rand} \\
                --{'' if store_feather else 'no-'}store-feather \\
                --{'' if store_csv else 'no-'}store-csv \\
                --initial-holdout {initial_holdout} \\
                --{'' if grow_init_batch else 'no-'}grow-init-batch \\
                --{'' if use_fine_tuning else 'no-'}use-fine-tuning \\
-               --{'' if predict_on_all else 'no-'}predict_on_all 
+               --{'' if predict_on_all else 'no-'}predict-on-all 
 """)
         subprocess.run(['sbatch', 'simulation/rank.slurm'])
 
