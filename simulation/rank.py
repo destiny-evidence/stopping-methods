@@ -233,7 +233,7 @@ def produce_rankings(
         model_args = [f'--models {m}' for m in models]
         rand = f'--random-state {random_state} \\' if random_state is not None else ''
         sbatch_args = {
-            'time': '6:00:00',
+            'time': '12:00:00',
             'nodes': '1',
             'mem': '8G',
             'mail-user': f'"{slurm_user}"',
