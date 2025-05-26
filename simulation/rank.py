@@ -5,7 +5,6 @@ from enum import Enum
 from typing import Annotated, Generator
 
 import typer
-from pyarrow import _dataset
 
 from rankings import assert_models, it_rankers
 from rankings.use_best import best_model_ranking as bm_ranking

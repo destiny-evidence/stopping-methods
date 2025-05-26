@@ -3,12 +3,16 @@ import os
 from pathlib import Path
 
 import pandas as pd
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(extra='allow')
+
     DATA_PATH: Path = Path('./data')
     N_JOBS: int = 5
+
+    PUBMED_API_KEY: str | None = None
 
     @property
     def raw_data_path(self) -> Path:
