@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Generator
 
 import pandas as pd
-import pandas as pdmns
 
 from shared.collection import AbstractCollection
 from shared.config import settings

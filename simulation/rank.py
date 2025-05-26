@@ -61,7 +61,7 @@ def produce_rankings(
         max_vocab: int = 7000,
         max_ngram: int = 1,
         min_df: int = 3,
-        tuning_interval: int = 1,
+        tuning_interval: int = 250,
         random_state: int | None = None,
         store_feather: bool = True,
         store_csv: bool = False,
@@ -73,6 +73,62 @@ def produce_rankings(
         slurm_gpu: bool = False,
         slurm_user: Annotated[str | None, typer.Option(help='email address to notify when done')] = None,
 ):
+    """
+    This is the main procedure for pre-computing rankings.
+
+    :param mode_exec:
+              DIRECT: Execute the full procedure loop directly
+              SLURM: Execute the full procedure loop on SLURM (this generates an sbatch file and submits a job array)
+              SINGLE: Execute for specific dataset only
+    :param mode_rank: There are two ranking modes:
+      * ALL: Compute all scores with all models and all hyperparameters and keep them all
+      * BEST: At each batch, determine which model is the best and only use that for ranking unseen
+    :param dataset_key: in case `mode_exec` is `SINGLE`, needs to be set, otherwise leave None
+    :param num_repeats: Number of times to repeat simulation with different random initialization
+    :param min_dataset_size: Reject all datasets with fewer total number of records than this
+    :param min_inclusion_rate: Reject all datasets with lower fraction of includes than this
+    :param num_random_init: Number of random records to screen before starting prioritisation
+    :param grow_init_batch: The random sample might not contain enough includes.
+                            If true, will increase starting sample until min_batch_incl found
+                            If false, randomly injecting a random relevant document to random sample (not cool)
+    :param initial_holdout: Number of relevant documents to hide from initial random sample (target method simulation)
+
+
+    :param batch_strategy: Select batch strategy (STATIC: every batch has same size, DYNAMIC: varying batch sizes)
+    :param stat_batch_size: Size of batches if `batch_strategy` is `STATIC`
+
+            When `batch_strategy` is `DYNAMIC`
+            Going to use the largest possible batch size and will grow that maximum over time starting with the lower
+            bound. Going to grow the maximum size but not using it all if at least a number of relevant records were
+            seen in the current batch.
+    :param dyn_min_batch_incl: Minimal number of includes per batch, will retrain if this number was found
+                               and len(batch) > min_batch_size OR len(batch) > max_batch_size
+    :param dyn_min_batch_size: Minimum (and starting) batch size
+    :param dyn_growth_rate: With each batch, going to grow the min_batch_size by this rate
+    :param dyn_max_batch_size: Maximum number per batch. This trumps growth rate and min_batch_incl
+
+    :param inject_random_batch_every: If > 0, don't use prioritisation every time but sprinkle in random samples
+    :param train_proportion: Which proportion of the screened data to use for training (remainder used for eval)
+    :param max_vocab: Maximum vocabulary size (see sklearn.TfidfVectorizer)
+    :param max_ngram: Maximum ngram length (see sklearn.TfidfVectorizer, lower bound = 1 fixed)
+    :param min_df: Minimum document frequency (see sklearn.TfidfVectorizer)
+
+    :param tuning_interval: Hyperparameter tuning is expensive. Set this to re-use tuning until another
+                            set of at least this number of records were screened
+
+    :param random_state: Fix random seed for reproducibility
+    :param store_feather: If true, save result as apache arrow file
+    :param store_csv: If true, save result as csv file
+
+    :param models: List of models to use (see `it_rankers` or `it_tuning_rankers`); fallback to all if None
+    :param use_fine_tuning: Ignored in `BEST` mode, otherwise decides
+
+    :param predict_on_all: If true, will always predict on every document and store all scores
+    :param init_nltk: If true, will make sure NLTK datasets are installed
+
+    :param slurm_gpu: If true, will prepare slurm batch script to run on GPU partition
+    :param slurm_user: Required for mode `SLURM`: email address to notify when done
+    """
     logger.info(f'Data path: {settings.DATA_PATH}')
     settings.ranking_data_path.mkdir(parents=True, exist_ok=True)
 

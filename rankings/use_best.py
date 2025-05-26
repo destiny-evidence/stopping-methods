@@ -12,16 +12,17 @@ def best_model_ranking(dataset: Dataset,
                        models: list[str],
                        repeat: int = 1,
                        train_proportion: float = 0.85,
-                       tuning_interval: int = 1,
+                       tuning_interval: int = 500,  # after how many annotations to fine-tune again
                        random_state: int | None = None) -> list[dict]:
     # We'll store hyperparameters of the best model per batch here
     infos = []
 
     last_ranker = None
+    last_tune = 0
     while dataset.has_unseen:
         dataset.prepare_next_batch()
 
-        if (dataset.last_batch % tuning_interval) > 0 and last_ranker is not None:
+        if (dataset.n_seen // tuning_interval) <= last_tune and last_ranker is not None:
             logger.info(f'Training without hyperparameter tuning in batch {dataset.last_batch}')
             last_ranker.train(clone=True)
             y_pred = last_ranker.predict(predict_on_all=False)
@@ -43,6 +44,7 @@ def best_model_ranking(dataset: Dataset,
                 random_state=random_state,
             )
 
+            last_tune = dataset.n_seen // tuning_interval
             best_prec = 0
             best_rec = 0
             best_f1 = 0
