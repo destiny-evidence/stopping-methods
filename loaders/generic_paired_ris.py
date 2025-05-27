@@ -67,10 +67,16 @@ def read_paired_ris_dataset(key: str) -> Dataset:
     included = list(read_ris_file(file_incl, label_abs=True))
     excluded = list(read_ris_file(file_excl, label_abs=False, idx_offset=len(included)))
 
+    records = [
+        rec
+        for rec in included + excluded
+        if rec.abstract is not None and len(rec.abstract) > 0
+    ]
+
     return Dataset(
         key=key,
-        labels=[rec.label_abs for rec in included + excluded],
-        texts=[(rec.title or '') + ' ' + (rec.abstract or '') for rec in included + excluded]
+        labels=[rec.label_abs for rec in records],
+        texts=[(rec.title or '') + ' ' + (rec.abstract or '') for rec in records]
     )
 
 

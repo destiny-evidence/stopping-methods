@@ -66,6 +66,12 @@ class CLEFCollection(AbstractCollection):
 def read_file(file_path: Path, key: str) -> Dataset:
     with open(file_path, 'r') as f:
         records = [json.loads(line) for line in f]
+        records = [
+            rec for rec in records
+            if (rec.get('label_abs') == 0 or rec.get('label_abs') == 1)
+               and rec.get('abstract') is not None
+               and len(rec.get('abstract')) > 0
+        ]
         return Dataset(
             key=key,
             labels=[int(rec['label_abs']) for rec in records],

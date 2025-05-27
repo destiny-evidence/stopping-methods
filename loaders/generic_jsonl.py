@@ -8,6 +8,10 @@ from shared.dataset import Dataset, Record
 def read_file(file_path: Path, key: str) -> Dataset:
     with open(file_path, 'r') as f:
         records = [Record.model_validate_json(line) for line in f]
+        records = [
+            rec for rec in records
+            if rec.abstract and len(rec.abstract) > 0
+        ]
         return Dataset(key=key,
                        labels=[rec.label_abs for rec in records],
                        texts=[(rec.title or '') + ' ' + (rec.abstract or '') for rec in records])

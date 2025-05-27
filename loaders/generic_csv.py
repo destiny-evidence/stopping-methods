@@ -9,15 +9,6 @@ from shared.dataset import Dataset
 logger = logging.getLogger(__name__)
 
 
-def read_file(file_path: Path, key: str) -> Dataset:
-    df = pd.read_csv(file_path).fillna('')
-    return Dataset(
-        key=key,
-        labels=[rec['label_abs'] for _, rec in df.iterrows()],
-        texts=[(rec['title'] or '') + ' ' + (rec['abstract'] or '') for _, rec in df.iterrows()]
-    )
-
-
 class GenericCollection(AbstractCollection):
     BASE: str = 'generic-csv'
 
@@ -33,6 +24,17 @@ class GenericCollection(AbstractCollection):
         logger.info(f'Found files: {files}')
         for file in files:
             yield read_file(file, f'generic-csv-{file.stem}')
+
+
+def read_file(file_path: Path, key: str) -> Dataset:
+    df = pd.read_csv(file_path).fillna('')
+    df = df[((df['label_abs'] == 0) | (df['label_abs'] == 0)) & df['abstract'].str.len > 0]
+
+    return Dataset(
+        key=key,
+        labels=[rec['label_abs'] for _, rec in df.iterrows()],
+        texts=[(rec['title'] or '') + ' ' + (rec['abstract'] or '') for _, rec in df.iterrows()]
+    )
 
 
 def read_csv_dataset(key: str) -> Dataset:
