@@ -45,6 +45,7 @@ def produce_rankings(
         mode_exec: ExecutionMode,
         mode_rank: RankingProcess = RankingProcess.BEST,
         dataset_key: Annotated[str | None, typer.Option(help='if mode==single: the key for the dataset')] = None,
+        dataset_repeat: Annotated[int | None, typer.Option(help='if mode==single: the repeat for the dataset')] = None,
         models: Annotated[list[str] | None, typer.Option(help='Models to use')] = None,
         num_repeats: int = 3,
         min_dataset_size: int = 500,
@@ -71,6 +72,7 @@ def produce_rankings(
         predict_on_all: bool = False,
         init_nltk: bool = False,
         slurm_gpu: bool = False,
+        slurm_hours: int = 20,
         slurm_user: Annotated[str | None, typer.Option(help='email address to notify when done')] = None,
 ):
     """
@@ -140,6 +142,35 @@ def produce_rankings(
     if init_nltk:
         prepare_nltk()
 
+    def best_model_ranking_run(dataset: Dataset, repeat: int):
+        logger.info(f'Running best model strategy for repeat cycle {repeat}...')
+
+        target_key = f'{dataset.KEY}-{initial_holdout}-{num_random_init}-{repeat}-best'
+        logger.info(f'Running ranker {target_key}...')
+        logger.debug(f'Checking for {settings.ranking_data_path / f'{target_key}.json'}')
+        if (settings.ranking_data_path / f'{target_key}.json').exists():
+            logger.info(f' > Skipping {target_key}; simulation already exists')
+            return
+
+        infos = bm_ranking(dataset=dataset,
+                           models=models,
+                           repeat=repeat,
+                           train_proportion=train_proportion,
+                           tuning_interval=tuning_interval,
+                           random_state=random_state)
+
+        # persist to disk and reset
+        logger.info(f'Persisting to disk for {target_key}...')
+        json_dumps(settings.ranking_data_path / f'{target_key}.json', {
+            'repeat': repeat,
+            'batches': infos,
+        }, indent=2)
+
+        if store_feather:
+            dataset.store(settings.ranking_data_path / f'{target_key}.feather')
+        if store_csv:
+            dataset.store(settings.ranking_data_path / f'{target_key}.csv')
+
     def rank_using_best(dataset: Dataset):
         logger.info('Rank using best model, initialising dataset...')
         dataset.init(num_random_init=num_random_init, batch_strategy=batch_strategy,
@@ -149,37 +180,14 @@ def produce_rankings(
                      initial_holdout=initial_holdout, grow_init_batch=grow_init_batch,
                      ngram_range=(1, max_ngram), max_features=max_vocab, min_df=min_df)
 
-        logger.info('Rank using best model, start loop...')
-        for repeat in range(1, num_repeats + 1):
-            logger.info(f'Running best model strategy for repeat cycle {repeat}...')
-
-            target_key = f'{dataset.KEY}-{initial_holdout}-{num_random_init}-{repeat}-best'
-            logger.info(f'Running ranker {target_key}...')
-            logger.debug(f'Checking for {settings.ranking_data_path / f'{target_key}.json'}')
-            if ((settings.ranking_data_path / f'{target_key}.json').exists()):
-                logger.info(f' > Skipping {target_key}; simulation already exists')
-                continue
-
-            infos = bm_ranking(dataset=dataset,
-                               models=models,
-                               repeat=repeat,
-                               train_proportion=train_proportion,
-                               tuning_interval=tuning_interval,
-                               random_state=random_state)
-
-            # persist to disk and reset
-            logger.info(f'Persisting to disk for {target_key}...')
-            json_dumps(settings.ranking_data_path / f'{target_key}.json', {
-                'repeat': repeat,
-                'batches': infos,
-            }, indent=2)
-
-            if store_feather:
-                dataset.store(settings.ranking_data_path / f'{target_key}.feather')
-            if store_csv:
-                dataset.store(settings.ranking_data_path / f'{target_key}.csv')
-
-            dataset.reset()
+        if dataset_repeat is not None:
+            logger.info(f'Rank using best model, running only repeat {dataset_repeat}')
+            best_model_ranking_run(dataset=dataset, repeat=dataset_repeat)
+        else:
+            logger.info('Rank using best model, start loop...')
+            for repeat in range(1, num_repeats + 1):
+                best_model_ranking_run(dataset=dataset, repeat=repeat)
+                dataset.reset()
 
     def rank_using_all(dataset: Dataset):
         logger.info('Rank using all, initialising dataset...')
@@ -288,20 +296,20 @@ def produce_rankings(
         model_args = [f'--models {m}' for m in models]
         rand = f'--random-state {random_state}' if random_state is not None else ''
         sbatch_args = {
-            'time': '20:00:00',
+            'time': f'{slurm_hours:0>2}:00:00',
             'nodes': '1',
             'mem': '8G',
             'mail-user': f'"{slurm_user}"',
             'output': f'{log_path}/%A_%a.out',
             'error': f'{log_path}/%A_%a.err',
             'chdir': os.getcwd(),
-            'array': f'1-{len(datasets) + 1}'
+            'array': f'1-{(len(datasets) + 1) * num_repeats}'
         }
         if slurm_gpu:
             sbatch_args |= {
                 'gres': 'gpu:1',  # number of GPUs
                 'partition': 'gpu',
-                'qos': 'gpumedium',  # or gpushort (has MaxJobsPU=2 but double priority, see `$ sacctmgr show qos`)
+                'qos': 'gpushort',  # or gpumedium (has MaxJobsPU=None but half priority, see `$ sacctmgr show qos`)
                 'cpus-per-task': 5,
             }
         else:
@@ -344,9 +352,12 @@ echo "Python version is $(python --version)"
 
 DATASETS=("{'" "'.join(datasets)}")
 
+dataset_idx=$(($SLURM_ARRAY_TASK_ID % {len(datasets)}))
+repeat=$(( ($SLURM_ARRAY_TASK_ID % {num_repeats}) + 1))
 python simulation/rank.py SINGLE \\
                --mode-rank {mode_rank.value} \\
-               --dataset-key "${{DATASETS[$SLURM_ARRAY_TASK_ID]}}" \\
+               --dataset-key "${{DATASETS[$dataset_idx]}}" \\
+               --dataset-repeat "${{repeat}}" \\
                {' '.join(model_args)} \\
                --num-repeats {num_repeats} \\
                --min-dataset-size {min_dataset_size} \\
