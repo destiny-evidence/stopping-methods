@@ -8,6 +8,7 @@ from .generic_csv import GenericCollection as GenericCollectionCSV, read_csv_dat
 from .generic_jsonl import GenericCollection as GenericCollectionJSON, read_jsonl_dataset
 from .generic_paired_ris import GenericPairedRISCollection, read_paired_ris_dataset
 from .sigir2017 import SIGIRCollection, read_sigir_dataset
+from .clef import CLEFCollection, read_clef_dataset
 
 logger = logging.getLogger('loaders')
 
@@ -15,8 +16,15 @@ logger = logging.getLogger('loaders')
 #               | GenericCollectionCSV
 #               | GenericCollectionJSON)
 
-# 'SynergyDataset',
-__all__ = ['SIGIRCollection', 'GenericCollectionCSV', 'GenericCollectionJSON', 'GenericPairedRISCollection']
+
+__all__ = [
+    'CLEFCollection',
+    'SIGIRCollection',
+    'GenericCollectionCSV',
+    'GenericCollectionJSON',
+    'GenericPairedRISCollection',
+    # 'SynergyDataset',
+]
 
 
 def it_collections() -> Generator[AbstractCollection, None, None]:
@@ -51,4 +59,6 @@ def read_dataset(key: str) -> Dataset:
         return read_jsonl_dataset(key)
     if key.startswith(SIGIRCollection.BASE):
         return read_sigir_dataset(key)
+    if key.startswith(CLEFCollection.BASE):
+        return read_clef_dataset(key)
     raise ValueError(f'Dataset key {key} not supported')
