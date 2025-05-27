@@ -81,7 +81,7 @@ def read_file(file_path: Path, key: str) -> Dataset:
 
 def read_clef_dataset(key: str) -> Dataset:
     base = CLEFCollection.BASE
-    base_dir = settings.raw_data_path / 'datasets' / base
+    base_dir = settings.raw_data_path / base / 'datasets'
     base_name = key[len(base) + 1:]
     file_path = base_dir / f'{base}-{base_name}.jsonl'
     if not file_path.exists():
