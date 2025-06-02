@@ -308,6 +308,9 @@ class RankedDataset:
 
         with open(ranking_info_fp, 'r') as f:
             self.info = json.load(f)
+
+        self.info['key'] = ranking_info_fp.stem
+
         self.ranking = pd.read_feather(self.ranking_fp)
 
         self._scores: list[float] | None = None
@@ -334,25 +337,23 @@ class RankedDataset:
 
     @property
     def dataset(self) -> str:
-        return self.info['dataset']
+        return self.info['batches'][0]['params']['dataset']
 
     @property
     def repeat(self) -> str:
         return self.info['repeat']
 
     @property
-    def ranker(self) -> str:
-        return self.info['ranker']
-
-    @property
     def scores(self) -> list[float]:
-        if self._scores is None:
-            self._scores: list[float] = [
-                li
-                for bi, batch in self.ranking.groupby('batch')
-                for li in batch[f'scores_batch_{bi}'].tolist()
-            ]
-        return self._scores
+        # TODO: add this back in for fully scored files
+        # if self._scores is None:
+        #     self._scores: list[float] = [
+        #         li
+        #         for bi, batch in self.ranking.groupby('batch')
+        #         for li in batch[f'scores_batch_{bi}'].tolist()
+        #     ]
+        # return self._scores
+        return self.ranking['score']
 
     @property
     def __len__(self) -> int:
@@ -374,8 +375,9 @@ class RankedDataset:
     def it_sim_batches(self) -> Generator[tuple[int, list[int], list[float], list[bool]], None, None]:
         for bi, batch in self.ranking.groupby('batch'):
             batch = batch.sort_values('order')
+            # TODO: add this back in for fully scored files
             # yield bi, batch['label'].tolist(), batch[f'scores_batch_{bi}'].tolist(), (~batch['random']).tolist()
-            yield int(bi), batch['label'].tolist(), self.scores, (~batch['random']).tolist()
+            yield int(bi), batch['label'].tolist(), batch['score'].tolist(), (~batch['random']).tolist()
 
     def it_cum_sim_batches(self) -> Generator[tuple[int, list[int], list[float], list[bool]], None, None]:
         scores = np.array([])

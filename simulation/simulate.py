@@ -8,7 +8,10 @@ import typer
 from shared.config import settings
 from shared.dataset import RankedDataset
 from methods import it_methods
+from shared.util import elapsed_timer
 
+logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s: %(message)s', level=logging.DEBUG)
+logging.getLogger('matplotlib').setLevel(logging.WARNING)
 logger = logging.getLogger('stopping')
 
 app = typer.Typer()
@@ -37,7 +40,6 @@ def compute_stops(
             logger.info(f'Running batch {batch_i} ({len(batches):,}/{dataset.n_total:,})')
             base_entry = {
                 'dataset': dataset.dataset,
-                'ranker': dataset.ranker,
                 'sim-rep': dataset.repeat,
                 'sim_key': dataset.info['key'],
                 'batch_i': batch_i,
@@ -61,25 +63,25 @@ def compute_stops(
             }
 
             for method in it_methods(dataset=dataset, methods=methods):
-                logger.debug(f'Running method {method.KEY}')
-                for paramset in method.parameter_options():
-                    stop_result = method.compute(
-                        list_of_labels=labels,
-                        list_of_model_scores=scores,
-                        is_prioritised=is_prioritised,
-                        **paramset)
+                with elapsed_timer(logger, f'Evaluating method {method.KEY}'):
+                    for paramset in method.parameter_options():
+                        stop_result = method.compute(
+                            list_of_labels=labels,
+                            list_of_model_scores=scores,
+                            is_prioritised=is_prioritised,
+                            **paramset)
 
-                    rows.append({
-                        **base_entry,
-                        'method': method.KEY,
-                        'safe_to_stop': stop_result.safe_to_stop,
-                        'method-hash': (method.KEY + '-' +
-                                        sha1(json.dumps(paramset, sort_keys=True).encode('utf-8')).hexdigest()),
-                        **{
-                            f'method-{k}': v
-                            for k, v in stop_result.model_dump().items()
-                        },
-                    })
+                        rows.append({
+                            **base_entry,
+                            'method': method.KEY,
+                            'safe_to_stop': stop_result.safe_to_stop,
+                            'method-hash': (method.KEY + '-' +
+                                            sha1(json.dumps(paramset, sort_keys=True).encode('utf-8')).hexdigest()),
+                            **{
+                                f'method-{k}': v
+                                for k, v in stop_result.model_dump().items()
+                            },
+                        })
 
         # Write entire log to disk after every dataset
         pd.DataFrame(rows).to_csv(settings.result_data_path / results_file, index=False)

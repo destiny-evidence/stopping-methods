@@ -1,7 +1,11 @@
 import logging
 import typing
+from datetime import timedelta
 from time import sleep, perf_counter
-from typing import Sequence, Generator, TypeVar
+from timeit import default_timer
+from typing import Sequence, Generator, TypeVar, Callable
+from contextlib import contextmanager
+
 from xml.etree.ElementTree import Element
 
 import httpx
@@ -11,6 +15,7 @@ from httpx._types import (
     RequestContent, RequestData, RequestFiles, QueryParamTypes, HeaderTypes, CookieTypes,
     AuthTypes, TimeoutTypes, RequestExtensions
 )
+from shared.method import AbstractMethod
 
 T = TypeVar('T')
 
@@ -141,3 +146,17 @@ def xml2dict(element: Element) -> dict[str, typing.Any]:
     if element.text and len(element.text.strip()) > 0:
         base['_text'] = element.text.strip()
     return base
+
+
+@contextmanager
+def elapsed_timer(logger: logging.Logger,
+                  tn: str = 'Task',
+                  log_enter: bool = False) -> Generator[Callable[[], float], None, None]:
+    if log_enter:
+        logger.debug(f'{tn}...')
+    start = default_timer()
+    elapser = lambda: default_timer() - start
+    yield lambda: elapser()
+    end = default_timer()
+    elapser = lambda: end - start
+    logger.debug(f'{tn} took {timedelta(seconds=end - start)} to execute.')

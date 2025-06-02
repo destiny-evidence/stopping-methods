@@ -31,8 +31,7 @@ class Buscar(AbstractMethod):
     def parameter_options(self) -> Generator[BuscarParamSet, None, None]:
         for target in [.8, .9, .95, .99]:
             for bias in [1., 2., 5., 10.]:
-                for conf in [0.95]:
-                    yield BuscarParamSet(recall_target=target, bias=bias, confidence_level=conf)
+                yield BuscarParamSet(recall_target=target, bias=bias, confidence_level=0.99)
 
     def compute(self,
                 list_of_labels: IntList,
@@ -116,3 +115,21 @@ def calculate_h0(labels_: IntList, n_docs: int, recall_target: float = .95, bias
     if np.isnan(p_min):
         return None
     return p_min
+
+
+if __name__ == '__main__':
+    from shared.test import test_method, plots
+
+    dataset, results = test_method(Buscar, BuscarParamSet(recall_target=0.95, bias=1.0, confidence_level=0.99), 2)
+    fig, ax = plots(dataset, results)
+    fig.show()
+    dataset, results = test_method(Buscar, BuscarParamSet(recall_target=0.9, bias=1.0, confidence_level=0.99), 2)
+    fig, ax = plots(dataset, results)
+    fig.show()
+
+    dataset, results = test_method(Buscar, BuscarParamSet(recall_target=0.95, bias=5.0, confidence_level=0.99), 2)
+    fig, ax = plots(dataset, results)
+    fig.show()
+    dataset, results = test_method(Buscar, BuscarParamSet(recall_target=0.9, bias=5.0, confidence_level=0.99), 2)
+    fig, ax = plots(dataset, results)
+    fig.show()
