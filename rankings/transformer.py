@@ -18,13 +18,14 @@ from torch import tensor, nn
 from datasets import Dataset
 from transformers import Trainer, TrainingArguments, AutoModelForSequenceClassification, AutoTokenizer
 from transformers.trainer_utils import PredictionOutput
-
+from transformers.utils.logging import disable_progress_bar
 from shared.config import settings
 from shared.ranking import AbstractRanker, TrainMode
 
 logger = logging.getLogger('trans-rank')
 logging.getLogger('urllib3').setLevel(logging.ERROR)
 warnings.filterwarnings('ignore', category=UndefinedMetricWarning)
+disable_progress_bar()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -210,7 +211,7 @@ class TransRanker(AbstractRanker):
             batch_size = trial.suggest_int('per_device_train_batch_size', self.min_batch_size, self.max_batch_size)
             base |= {
                 'model_name': trial.suggest_categorical('model_name', self.models),
-                'use_class_weights': trial.suggest_categorical('use_class_weights', [0, 1]),
+                # 'use_class_weights': trial.suggest_categorical('use_class_weights', [0, 1]),
                 'learning_rate': trial.suggest_float('learning_rate', 1e-6, 1e-2, log=True),
                 'per_device_train_batch_size': batch_size,
                 'per_device_eval_batch_size': batch_size,
