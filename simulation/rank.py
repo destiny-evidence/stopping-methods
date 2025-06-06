@@ -170,6 +170,7 @@ def produce_rankings(
             dataset.store(settings.ranking_data_path / f'{target_key}.feather')
         if store_csv:
             dataset.store(settings.ranking_data_path / f'{target_key}.csv')
+        logger.info('Done with best_model_ranking_run()')
 
     def rank_using_best(dataset: Dataset):
         logger.info('Rank using best model, initialising dataset...')
@@ -188,6 +189,7 @@ def produce_rankings(
             for repeat in range(1, num_repeats + 1):
                 best_model_ranking_run(dataset=dataset, repeat=repeat)
                 dataset.reset()
+        logger.info('Done with rank_using_best()')
 
     def rank_using_all(dataset: Dataset):
         logger.info('Rank using all, initialising dataset...')
@@ -231,6 +233,7 @@ def produce_rankings(
                 if store_csv:
                     dataset.store(settings.ranking_data_path / f'{target_key}.csv')
                 dataset.reset()
+        logger.info('Done with rank_using_all()')
 
     def it_filtered_datasets() -> Generator[Dataset, None, None]:
         for _dataset in it_datasets():
@@ -261,6 +264,8 @@ def produce_rankings(
                 logger.debug(f'Running simulations for dataset {dataset_.KEY} using all models!')
                 rank_using_all(dataset=dataset_)
 
+        logger.info('All done for this job!')
+
     elif mode_exec == ExecutionMode.SINGLE:
         logger.info(f'Running simulation on dataset: {dataset_key}')
         if dataset_key is None:
@@ -273,6 +278,8 @@ def produce_rankings(
         elif mode_rank == RankingProcess.ALL:
             logger.debug(f'Running all models simulation on dataset: {dataset_key}')
             rank_using_all(dataset=dataset_)
+
+        logger.info('All done for this job!')
 
     elif mode_exec == ExecutionMode.SLURM:
         from rankings import TransRanker
