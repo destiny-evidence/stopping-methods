@@ -80,7 +80,8 @@ class Knee(AbstractMethod):
 
         if labels.sum() == 0:
             return KneeLogEntry(safe_to_stop=False, window_size=window_size, polyorder=polyorder,
-                                threshold_ratio=threshold_ratio, slope_ratio=0, smoothing=smoothing)
+                                threshold_ratio=threshold_ratio, threshold_peak=threshold_peak,
+                                slope_ratio=0, smoothing=smoothing)
 
         x = np.arange(len(list_of_labels))
         x_norm = x / self.dataset.n_total
@@ -121,6 +122,9 @@ class Knee(AbstractMethod):
             ax2.plot(x_norm, curve_smooth_norm, label='curve')
             ax2.plot(x_norm, diff, label='diff')
 
+            # TODO: This could be interesting to look for inflection point
+            #       to get the last "bump" rather than the biggest bump
+            #       https://stackoverflow.com/questions/60625952/find-inflexion-point-of-a-numpy-array-curve
             ax3 = ax2.twinx()
             d1 = np.gradient(diff)
             ax3.plot(d1, label='d1d', lw=0.2)

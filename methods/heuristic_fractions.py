@@ -29,7 +29,7 @@ class HeuristicFraction(AbstractMethod):
                 list_of_labels: IntList,
                 list_of_model_scores: FloatList,
                 is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
-                fraction: float) -> HeuristicFractionLogEntry:
+                fraction: float = 0.05) -> HeuristicFractionLogEntry:
         num_to_stop = int(self.dataset.n_total * fraction)
         last_labels = list_of_labels[-min(len(list_of_labels), num_to_stop):]
 

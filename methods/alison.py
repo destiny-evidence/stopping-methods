@@ -8,7 +8,7 @@ import pandas as pd
 from scipy.stats import poisson
 from scipy.optimize import curve_fit, OptimizeWarning
 
-from shared.method import AbstractMethod, AbstractLogEntry
+from shared.method import AbstractMethod, AbstractLogEntry, RECALL_TARGETS
 from shared.types import IntList, FloatList
 
 Array = np.ndarray[tuple[int], np.dtype[np.int64]]
@@ -33,7 +33,7 @@ class Alison(AbstractMethod):
     KEY: str = 'ALISON'
 
     def parameter_options(self) -> Generator[AlisonParamSet, None, None]:
-        for target in [.8, .9, .95, .99]:
+        for target in RECALL_TARGETS:
             for nw in [10, 50]:
                 for conf in [0.8, 0.95]:
                     yield AlisonParamSet(recall_target=target, confidence_level=conf, n_windows=nw)
@@ -43,9 +43,9 @@ class Alison(AbstractMethod):
             list_of_labels: IntList,
             list_of_model_scores: FloatList,
             is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
-            recall_target: float,  # 0.7  <- minimum desired recall level
-            confidence_level: float,  # 0.95  <- minimum desired probability for poisson
-            n_windows: int,  # 10  <- number of windows to make from sample
+            recall_target: float = .07,  # 0.7  <- minimum desired recall level
+            confidence_level: float = 0.95,  # 0.95  <- minimum desired probability for poisson
+            n_windows: int = 10,  # 10  <- number of windows to make from sample
     ) -> AlisonLogEntry:
         # inspired by
         # https://github.com/alisonsneyd/poisson_stopping_method/blob/master/run_stopping_point_algorithms.py
@@ -114,7 +114,6 @@ class Alison(AbstractMethod):
                                   recall_target=recall_target,
                                   confidence_level=confidence_level,
                                   n_windows=n_windows)
-
 
 
 # fn to fit curve to points

@@ -28,7 +28,7 @@ class HeuristicFixed(AbstractMethod):
                 list_of_labels: IntList,
                 list_of_model_scores: FloatList,
                 is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
-                num_to_stop: int) -> HeuristicFixedLogEntry:
+                num_to_stop: int=20) -> HeuristicFixedLogEntry:
         last_labels = list_of_labels[-min(len(list_of_labels), num_to_stop):]
 
         return HeuristicFixedLogEntry(safe_to_stop=1 not in last_labels,

@@ -15,6 +15,9 @@ class AbstractLogEntry(BaseModel):
     score: float | None = None
 
 
+RECALL_TARGETS = [.8, .9, .95, .99]
+
+
 class AbstractMethod(ABC):
     KEY: str
 

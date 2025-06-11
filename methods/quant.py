@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from shared.dataset import RankedDataset
-from shared.method import AbstractMethod, AbstractLogEntry
+from shared.method import AbstractMethod, AbstractLogEntry, RECALL_TARGETS
 from shared.types import IntList, FloatList
 
 logger = logging.getLogger('stop-quant')
@@ -34,7 +34,7 @@ class Quant(AbstractMethod):
     KEY: str = 'QUANT'
 
     def parameter_options(self) -> Generator[QuantParamSet, None, None]:
-        for target_recall in [0.7, 0.8, 0.9, 0.95]:
+        for target_recall in RECALL_TARGETS:
             for nstd in [0, 1, 2]:
                 yield QuantParamSet(target_recall=target_recall, nstd=nstd)
 

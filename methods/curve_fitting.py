@@ -3,7 +3,7 @@ from typing import Generator, TypedDict
 import numpy as np
 import pandas as pd
 from scipy.optimize import curve_fit
-from shared.method import AbstractMethod, AbstractLogEntry
+from shared.method import AbstractMethod, AbstractLogEntry, RECALL_TARGETS
 from shared.types import IntList, FloatList
 
 Array = np.ndarray[tuple[int], np.dtype[np.int64]]
@@ -32,15 +32,15 @@ class CurveFitting(AbstractMethod):
     KEY = 'CurveFitting'
 
     def parameter_options(self) -> Generator[CurveFittingParamSet, None, None]:
-        for target in [.8, .9, .95, .99]:
+        for target in RECALL_TARGETS:
             yield CurveFittingParamSet(recall_target=target, curve='exp')
 
     def compute(self,
                 list_of_labels: IntList,
                 list_of_model_scores: FloatList,
                 is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
-                recall_target: float,
-                curve: str) -> CurveFittingLogEntry:
+                recall_target: float = 0.95,
+                curve: str = 'exp') -> CurveFittingLogEntry:
         labels = np.array(list_of_labels)
 
         # Fit the exponential curve and keep first parameter, which can be interpreted as

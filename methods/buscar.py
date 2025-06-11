@@ -6,7 +6,7 @@ import pandas as pd
 
 from scipy.stats import hypergeom, nchypergeom_wallenius
 
-from shared.method import AbstractMethod, AbstractLogEntry
+from shared.method import AbstractMethod, AbstractLogEntry, RECALL_TARGETS
 from shared.types import IntList, FloatList
 
 Array = np.ndarray[tuple[int], np.dtype[np.int64]]
@@ -29,7 +29,7 @@ class Buscar(AbstractMethod):
     KEY: str = 'BUSCAR'
 
     def parameter_options(self) -> Generator[BuscarParamSet, None, None]:
-        for target in [.8, .9, .95, .99]:
+        for target in RECALL_TARGETS:
             for bias in [1., 2., 5., 10.]:
                 yield BuscarParamSet(recall_target=target, bias=bias, confidence_level=0.99)
 
