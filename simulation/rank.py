@@ -362,6 +362,10 @@ DATASETS=("{'" "'.join(datasets)}")
 job=$(($SLURM_ARRAY_TASK_ID - 1))
 dataset_idx=$(($job / {num_repeats}))
 repeat=$((($job % {num_repeats}) + 1))
+
+echo "array_task_id" $SLURM_ARRAY_TASK_ID " --> job" $job 
+echo "dataset" $dataset_idx "repeat" $repeat
+
 python simulation/rank.py SINGLE \\
                --mode-rank {mode_rank.value} \\
                --dataset-key "${{DATASETS[$dataset_idx]}}" \\
