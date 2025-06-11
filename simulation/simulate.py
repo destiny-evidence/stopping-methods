@@ -3,6 +3,7 @@ import logging
 import os
 import subprocess
 from hashlib import sha1
+from typing import Annotated
 
 import pandas as pd
 import typer
@@ -21,7 +22,7 @@ app = typer.Typer()
 
 @app.command()
 def slurm(
-        slurm_user: str,
+        slurm_user: Annotated[str, typer.Option(help='email address to notify when done')],
         batch_size: int = 100,  # Step size for computing stopping scores
         methods: list[str] | None = None,  # Methods to compute scores for (empty=all)
         results_dir: str = '',
