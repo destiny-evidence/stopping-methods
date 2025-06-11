@@ -87,13 +87,18 @@ def slurm(
 
     echo "Using python from $(which python)"
     echo "Python version is $(python --version)"
+    echo $SLURM_ARRAY_TASK_ID
 
     METHODS=("{'" "'.join(method_keys)}")
 
+    echo $SLURM_ARRAY_TASK_ID
+    METHOD=${{METHODS[$(($SLURM_ARRAY_TASK_ID - 1))]}}
+    echo $METHOD
+
     python simulation/simulate.py compute-stops \\
                    --batch-size {batch_size} \\
-                   --methods "${{METHODS[$SLURM_ARRAY_TASK_ID]}}" \\
-                   --results-file "{results_path}/simulation-${{METHODS[$SLURM_ARRAY_TASK_ID]}}.csv"
+                   --methods "$METHOD" \\
+                   --results-file "{results_path}/simulation-$METHOD.csv"
     """)
     subprocess.run(['sbatch', 'simulation/simulate.slurm'])
 

@@ -359,6 +359,7 @@ echo "Python version is $(python --version)"
 
 DATASETS=("{'" "'.join(datasets)}")
 
+job=$(($SLURM_ARRAY_TASK_ID - 1))
 dataset_idx=$(($SLURM_ARRAY_TASK_ID % {len(datasets)}))
 repeat=$(( ($SLURM_ARRAY_TASK_ID % {num_repeats}) + 1))
 python simulation/rank.py SINGLE \\

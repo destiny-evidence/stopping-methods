@@ -100,8 +100,10 @@ export PYTHONPATH=$PYTHONPATH:/path/to/stopping-methods && python simulation/mai
 
 # via slurm
 export PYTHONPATH=$PYTHONPATH:. && python simulation/simulate.py slurm --slurm-user=name@pik-potsdam.de --batch-size=15 --slurm-hours=12
+# check status
 squeue --me -t all
-
+# clearing
+rm  data/results/simulation-*
 ```
 
 Options:
