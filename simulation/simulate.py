@@ -91,10 +91,10 @@ def slurm(
     METHODS=("{'" "'.join(method_keys)}")
 
     method_idx=$(($SLURM_ARRAY_TASK_ID % {len(method_keys)}))
-    python simulation/simulate.py compute_stops \\
+    python simulation/simulate.py compute-stops \\
                    --batch-size {batch_size} \\
                    --methods "${{METHODS[$method_idx]}}" \\
-                   --results-file "{results_dir}/simulation-${{METHODS[$method_idx]}}.csv"
+                   --results-file "{results_path}/simulation-${{METHODS[$method_idx]}}.csv"
     """)
     subprocess.run(['sbatch', 'simulation/simulate.slurm'])
 
