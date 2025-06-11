@@ -1,148 +1,167 @@
 from typing import Generator, TypedDict
+from enum import StrEnum
 import numpy as np
 import pandas as pd
-from scipy.stats import norm
-from sklearn.preprocessing import MinMaxScaler
 from scipy.signal import savgol_filter
+from scipy.ndimage import gaussian_filter1d
 
 from shared.method import AbstractMethod, AbstractLogEntry
 from shared.types import IntList, FloatList
 
 Array = np.ndarray[tuple[int], np.dtype[np.int64]]
 
+DEV_MODE = __name__ == '__main__'
+
+
+class SmoothingMethod(StrEnum):
+    GAUSS = 'gauss'
+    SAVGOL = 'savgol'
+
 
 class KneeParamSet(TypedDict):
     window_size: int
-    s: int
-    n_windows: float
+    polyorder: int
+    threshold_ratio: float
+    threshold_peak: float
+    smoothing: SmoothingMethod
 
 
 class KneeLogEntry(AbstractLogEntry):
     KEY: str = 'KNEE'
     window_size: int
-    s: int
-    n_windows: int
-    knees: list[int] | None = None
+    polyorder: int
+    threshold_ratio: float
+    threshold_peak: float
+    slope_ratio: float
+    smoothing: SmoothingMethod
 
 
 class Knee(AbstractMethod):
     KEY: str = 'KNEE'
 
     def parameter_options(self) -> Generator[KneeParamSet, None, None]:
-        for ws in [1, 3, 10]:
-            for s in [5, 10, 20]:
-                for nw in [10, 100, 1000]:
-                    yield KneeParamSet(window_size=ws, s=s, n_windows=nw)
+        for window_size in [50, 500]:
+            for th in [3, 4, 5, 6, 7]:
+                yield KneeParamSet(window_size=window_size, threshold_ratio=th,
+                                   polyorder=1, smoothing=SmoothingMethod.GAUSS)
 
     def compute(self,
                 list_of_labels: IntList,
                 list_of_model_scores: FloatList,
                 is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
-                window_size: int,
-                s: int,
-                n_windows: int) -> KneeLogEntry:
+                window_size: int = 500,
+                smoothing: SmoothingMethod = SmoothingMethod.GAUSS,
+                polyorder: int = 1,
+                threshold_ratio: float = 6.0,
+                threshold_peak: float = 0.3,
+                ) -> KneeLogEntry:
         """
-           Detect the so-called knee in the data.
-           https://raghavan.usc.edu/papers/kneedle-simplex11.pdf
+        Detect the so-called knee in the data.
+        This is based on kneedle but adapted so that it actually has a chance to work.
+          https://raghavan.usc.edu/papers/kneedle-simplex11.pdf
+        First used for stopping:
+          https://dl.acm.org/doi/pdf/10.1145/2911451.2911510
 
-           // @param data: The 2d data to find a knee in.
-           @param window_size: The data is smoothed using Gaussian kernel average smoother, this parameter is the
-                               window used for averaging (higher values mean more smoothing, try 3 to begin with).
-           @param s: How many "flat" points to require before we consider it a knee.
-           @param batch_scale: proportional batch size; originally not in the implementation, but we give it the
-                               full list of all annotations and the algorithm benefits from a more coarse resolution.
-                               0.05 seems to be a reasonable factor
-           @return: The knee values.
-           """
-        batch_size = max(1, int(self.dataset.n_total / n_windows))
-
+        Implemented idea here:
+          1) Find the knee
+             - smooth curve and norm to 0–1 range
+             - compute diff between smooth curve to line (0,0)-(seen, included)
+             - find argmax on diff -> knee
+          2) Compute slopes before and after knee point
+          3) Compute and test ratio of pre-/post-slopes
+        """
         labels = np.array(list_of_labels)
-        # Transform list of labels to inclusion curve;
-        # normalise x to fraction of dataset total and normalise y to (0, 1)
 
         if labels.sum() == 0:
-            return KneeLogEntry(safe_to_stop=False,
-                                s=s, n_windows=n_windows, window_size=window_size)
+            return KneeLogEntry(safe_to_stop=False, window_size=window_size, polyorder=polyorder,
+                                threshold_ratio=threshold_ratio, slope_ratio=0, smoothing=smoothing)
 
-        data = np.array([np.arange(len(list_of_labels)) / self.dataset.n_total,
-                         labels.cumsum() / labels.sum()]).T
-        # Create fake batches and select only every Nth entry from the curve
-        data = data[::batch_size]
-        n_windows = len(data)
+        x = np.arange(len(list_of_labels))
+        x_norm = x / self.dataset.n_total
+        curve = labels.cumsum() / labels.sum()  # rescales y-values of inclusion curve
+        window_size_ = min(window_size, len(list_of_labels))
 
-        if n_windows < 2:
-            return KneeLogEntry(safe_to_stop=False,
-                                s=s, n_windows=n_windows, window_size=window_size)
+        if smoothing == SmoothingMethod.SAVGOL:
+            curve_smooth = savgol_filter(curve, window_length=window_size_, polyorder=polyorder)
+        elif smoothing == SmoothingMethod.GAUSS:
+            curve_smooth = gaussian_filter1d(curve, sigma=window_size_)
+        else:
+            raise AttributeError(f'Unknown smoothing method {smoothing}')
+        curve_smooth_norm = curve_smooth / curve_smooth.max()
+        curve_smooth_norm = curve_smooth_norm - curve_smooth_norm.min()
+        curve_smooth_norm = curve_smooth_norm / curve_smooth_norm.max()
+        baseline = np.linspace(0.0, 1.0, num=len(x), endpoint=False)
+        diff = curve_smooth_norm - baseline
 
-        # smooth
-        smoothed_data = []
-        for i in range(n_windows):
-            if 0 < i - window_size:
-                start_index = i - window_size
-            else:
-                start_index = 0
-            if n_windows - i - window_size <= 0:
-                end_index = n_windows - 1
-            else:
-                end_index = i + window_size
+        knee = np.argmax(diff)
+        slope_pre = curve_smooth_norm[knee]
+        slope_post = 1.0 - curve_smooth_norm[knee]
+        # print((len(x) - knee), knee, len(x), slope_pre, slope_post, slope_pre / slope_post)
+        if slope_post == 0 or (len(x) - knee) < 50 or ((len(x) - knee) / len(x)) < 0.05 or diff.max() < threshold_peak:
+            return KneeLogEntry(safe_to_stop=False, window_size=window_size, polyorder=polyorder,
+                                threshold_ratio=threshold_ratio, threshold_peak=threshold_peak,
+                                slope_ratio=0, smoothing=smoothing)
 
-            sum_x_weight = 0
-            sum_y_weight = 0
-            sum_index_weight = 0
-            for j in range(start_index, end_index):
-                index_weight = norm.pdf(abs(j - i) / window_size, 0, 1)
-                sum_index_weight += index_weight
-                sum_x_weight += index_weight * data[j][0]
-                sum_y_weight += index_weight * data[j][1]
+        slope_ratio = slope_pre / slope_post
 
-            smoothed_x = sum_x_weight / sum_index_weight
-            smoothed_y = sum_y_weight / sum_index_weight
+        if DEV_MODE and (len(list_of_labels) % 200) == 0 and len(list_of_labels) > 100:
+            fig, (ax1, ax2) = plt.subplots(1, 2, dpi=150, figsize=(12, 5))
+            ax1.plot(x, curve, label='raw')
+            ax1.plot(x, curve_smooth, label='smoothed')
+            ax1.plot(x, curve_smooth_norm, label='normed')
+            ax1.grid(lw=0.1, ls='--')
 
-            smoothed_data.append((smoothed_x, smoothed_y))
+            ax2.plot(x_norm, baseline, lw=0.1, ls='--', label='base')
+            ax2.plot(x_norm, curve_smooth_norm, label='curve')
+            ax2.plot(x_norm, diff, label='diff')
 
-        smoothed_data = np.array(smoothed_data)
+            ax3 = ax2.twinx()
+            d1 = np.gradient(diff)
+            ax3.plot(d1, label='d1d', lw=0.2)
+            d2 = np.gradient(d1)
+            ax3.plot(d2, label='d2d', lw=0.2)
+            ax3.plot(np.gradient(np.gradient(curve_smooth_norm)), label='d2', lw=0.2)
 
-        # normalize
-        normalized_data = MinMaxScaler().fit_transform(smoothed_data)
+            ax2.grid(lw=0.1, ls='--')
+            ax2.set_xlim(0, 1)
+            # ax2.set_ylim(0, 1)
+            ax2.text(0, 0.9, f'{curve_smooth_norm[knee]:.1f} -> {slope_ratio:.2f}')
+            ax2.plot((slope_ratio > threshold_ratio).astype(int), label='stop')
+            fig.legend(loc='outside upper right')
+            fig.suptitle(f'x_norm.max()={x_norm.max():.2f} '
+                         f'// window_size={window_size} '
+                         f'// n_labels={len(list_of_labels):,}',
+                         fontsize=12)
+            fig.tight_layout()
+            fig.show()
 
-        # difference
-        differed_data = np.array([(x, y - x) for x, y in normalized_data])
-
-        # find indices for local maximums
-        candidate_indices = []
-        for i in range(1, n_windows - 1):
-            if (
-                    differed_data[i][1] > differed_data[i - 1][1]
-                    and
-                    differed_data[i][1] > differed_data[i + 1][1]
-            ):
-                candidate_indices.append(i)
-
-        # threshold
-        step = s * (normalized_data[-1][0] - data[0][0]) / self.dataset.n_total
-
-        # knees
-        knee_indices = []
-        for i, candidate_index in enumerate(candidate_indices):
-            if i + 1 < len(candidate_indices):  # not last second
-                end_index = candidate_indices[i + 1]
-            else:
-                end_index = n_windows
-
-            threshold = differed_data[candidate_index][1] - step
-
-            for j in range(candidate_index, end_index):
-                if differed_data[j][1] < threshold:
-                    knee_indices.append(candidate_index)
-                    break
-
-        return KneeLogEntry(safe_to_stop=len(knee_indices) > 0,
-                            s=s, n_windows=n_windows, window_size=window_size,
-                            knees=[ki * batch_size for ki in knee_indices])
+        return KneeLogEntry(safe_to_stop=slope_ratio > threshold_ratio,
+                            polyorder=polyorder,
+                            window_size=window_size,
+                            slope_ratio=slope_ratio,
+                            threshold_ratio=threshold_ratio,
+                            threshold_peak=threshold_peak,
+                            smoothing=smoothing)
 
 
 if __name__ == '__main__':
     from shared.test import test_method, plots
-    dataset, results = test_method(Knee, KneeParamSet(window_size=20, s=10, n_windows=100), 2 )
+    from matplotlib import pyplot as plt
+
+    # DEV_MODE = False
+    # dataset, results = test_method(Knee, KneeParamSet(window_size=100, polyorder=1,
+    #                                                   threshold_ratio=5, smoothing=SmoothingMethod.GAUSS), 2)
+    # plt.plot(np.linspace(0, 1, len(results)) * dataset.n_total, [r['slope_ratio'] for r in results])
+    # plt.show()
+    # dataset, results = test_method(Knee, KneeParamSet(window_size=200, polyorder=1,
+    #                                                   threshold_ratio=5, smoothing=SmoothingMethod.GAUSS), 2)
+    # plt.plot([r['slope_ratio'] for r in results])
+    # plt.show()
+
+    dataset, results = test_method(Knee, KneeParamSet(window_size=500, polyorder=1, threshold_peak=0.3,
+                                                      threshold_ratio=3, smoothing=SmoothingMethod.SAVGOL), 5)
+    plt.plot(np.arange(len(results)) / len(results) * dataset.n_total, [r['slope_ratio'] for r in results])
+    plt.show()
+
     fig, ax = plots(dataset, results)
     fig.show()
