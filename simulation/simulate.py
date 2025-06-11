@@ -59,7 +59,7 @@ def slurm(
     sbatch = [f'#SBATCH --{key}={value}' for key, value in sbatch_args.items()]
     # Write slurm batch file
     # For information on array jobs, see: https://hpcdocs.hpc.arizona.edu/running_jobs/batch_jobs/array_jobs/
-    with open('simulation/rank.slurm', 'w') as slurm_file:
+    with open('simulation/simulate.slurm', 'w') as slurm_file:
         slurm_file.write(f"""#!/bin/bash
 
     {'\n'.join(sbatch)}
