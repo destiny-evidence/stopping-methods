@@ -51,7 +51,7 @@ def slurm(
         'output': f'{log_path}/%A_%a.out',
         'error': f'{log_path}/%A_%a.err',
         'chdir': os.getcwd(),
-        'array': f'1-{(len(stop_methods) + 1)}',
+        'array': f'1-{len(stop_methods)}',
         'cpus-per-task': 8,
         'partition': 'standard',
         'qos': 'short',
@@ -90,11 +90,10 @@ def slurm(
 
     METHODS=("{'" "'.join(method_keys)}")
 
-    method_idx=$(($SLURM_ARRAY_TASK_ID % {len(method_keys)}))
     python simulation/simulate.py compute-stops \\
                    --batch-size {batch_size} \\
-                   --methods "${{METHODS[$method_idx]}}" \\
-                   --results-file "{results_path}/simulation-${{METHODS[$method_idx]}}.csv"
+                   --methods "${{METHODS[$SLURM_ARRAY_TASK_ID]}}" \\
+                   --results-file "{results_path}/simulation-${{METHODS[$SLURM_ARRAY_TASK_ID]}}.csv"
     """)
     subprocess.run(['sbatch', 'simulation/simulate.slurm'])
 

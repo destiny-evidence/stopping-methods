@@ -96,6 +96,12 @@ The following will compute all the scores for all the pre-computed rankings.
 
 ```bash
 export PYTHONPATH=$PYTHONPATH:/path/to/stopping-methods && python simulation/main.py simulate-stopping --batch-size=100 --results_file results.csv
+
+
+# via slurm
+export PYTHONPATH=$PYTHONPATH:. && python simulation/simulate.py slurm --slurm-user=name@pik-potsdam.de --batch-size=15 --slurm-hours=12
+squeue --me -t all
+
 ```
 
 Options:
