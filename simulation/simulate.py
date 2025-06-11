@@ -167,8 +167,10 @@ def compute_stops(
                             },
                         })
 
-        # Write entire log to disk after every dataset
+        logger.info(f'Write entire log to disk for simulation {ranking_info_fp}')
         pd.DataFrame(rows).to_csv(settings.result_data_path / results_file, index=False)
+
+    logger.info('All done!')
 
 
 if __name__ == '__main__':
