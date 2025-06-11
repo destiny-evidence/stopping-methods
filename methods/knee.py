@@ -40,10 +40,16 @@ class Knee(AbstractMethod):
     KEY: str = 'KNEE'
 
     def parameter_options(self) -> Generator[KneeParamSet, None, None]:
-        for window_size in [50, 500]:
-            for th in [3, 4, 5, 6, 7]:
-                yield KneeParamSet(window_size=window_size, threshold_ratio=th,
-                                   polyorder=1, smoothing=SmoothingMethod.GAUSS)
+        # for window_size in [100, 200]:
+        #     for th_r in [4, 6, 7, 10]:
+        #         for th_p in [0.2, 0.3, 0.4]:
+        #             yield KneeParamSet(window_size=window_size, threshold_ratio=th_r, threshold_peak=th_p,
+        #                                polyorder=1, smoothing=SmoothingMethod.GAUSS)
+        for window_size in [500]:
+            for th_r in [2, 3, 4, 7]:
+                for th_p in [0.2, 0.3, 0.4]:
+                    yield KneeParamSet(window_size=window_size, threshold_ratio=th_r, threshold_peak=th_p,
+                                       polyorder=1, smoothing=SmoothingMethod.SAVGOL)
 
     def compute(self,
                 list_of_labels: IntList,
