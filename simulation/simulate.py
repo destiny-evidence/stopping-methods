@@ -20,7 +20,7 @@ app = typer.Typer()
 
 
 @app.command()
-def compute_stops_slurm(
+def slurm(
         slurm_user: str,
         batch_size: int = 100,  # Step size for computing stopping scores
         methods: list[str] | None = None,  # Methods to compute scores for (empty=all)
