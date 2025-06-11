@@ -62,43 +62,43 @@ def slurm(
     with open('simulation/simulate.slurm', 'w') as slurm_file:
         slurm_file.write(f"""#!/bin/bash
 
-    {'\n'.join(sbatch)}
-    #SBATCH --oversubscribe  # use non-utilized GPUs on busy nodes
-    #SBATCH --mail-type=END,FAIL  # 'NONE', 'BEGIN', 'END', 'FAIL', 'REQUEUE', 'ALL'
+{'\n'.join(sbatch)}
+#SBATCH --oversubscribe  # use non-utilized GPUs on busy nodes
+#SBATCH --mail-type=END,FAIL  # 'NONE', 'BEGIN', 'END', 'FAIL', 'REQUEUE', 'ALL'
 
-    # Set this to exit the script when an error occurs
-    set -e
-    # Set this to print commands before executing
-    set -o xtrace
+# Set this to exit the script when an error occurs
+set -e
+# Set this to print commands before executing
+set -o xtrace
 
-    # Set up python environment
-    module load anaconda/2024.10
-    module load cuda
-    source "{venv_path}/bin/activate"
+# Set up python environment
+module load anaconda/2024.10
+module load cuda
+source "{venv_path}/bin/activate"
 
-    # Python env vars
-    export PYTHONPATH=$PYTHONPATH:{os.getcwd()}
-    export PYTHONUNBUFFERED=1
+# Python env vars
+export PYTHONPATH=$PYTHONPATH:{os.getcwd()}
+export PYTHONUNBUFFERED=1
 
-    # Environment variables for script
-    export OPENBLAS_NUM_THREADS=1
-    export TRANSFORMERS_OFFLINE=1
-    export HF_HUB_OFFLINE=1
+# Environment variables for script
+export OPENBLAS_NUM_THREADS=1
+export TRANSFORMERS_OFFLINE=1
+export HF_HUB_OFFLINE=1
 
-    echo "Using python from $(which python)"
-    echo "Python version is $(python --version)"
-    echo $SLURM_ARRAY_TASK_ID
+echo "Using python from $(which python)"
+echo "Python version is $(python --version)"
+echo $SLURM_ARRAY_TASK_ID
 
-    METHODS=("{'" "'.join(method_keys)}")
+METHODS=("{'" "'.join(method_keys)}")
 
-    echo $SLURM_ARRAY_TASK_ID
-    METHOD=${{METHODS[$(($SLURM_ARRAY_TASK_ID - 1))]}}
-    echo $METHOD
+echo $SLURM_ARRAY_TASK_ID
+METHOD=${{METHODS[$(($SLURM_ARRAY_TASK_ID - 1))]}}
+echo $METHOD
 
-    python simulation/simulate.py compute-stops \\
-                   --batch-size {batch_size} \\
-                   --methods "$METHOD" \\
-                   --results-file "{results_path}/simulation-$METHOD.csv"
+python simulation/simulate.py compute-stops \\
+               --batch-size {batch_size} \\
+               --methods "$METHOD" \\
+               --results-file "{results_path}/simulation-$METHOD.csv"
     """)
     subprocess.run(['sbatch', 'simulation/simulate.slurm'])
 

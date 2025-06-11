@@ -360,8 +360,8 @@ echo "Python version is $(python --version)"
 DATASETS=("{'" "'.join(datasets)}")
 
 job=$(($SLURM_ARRAY_TASK_ID - 1))
-dataset_idx=$(($SLURM_ARRAY_TASK_ID % {len(datasets)}))
-repeat=$(( ($SLURM_ARRAY_TASK_ID % {num_repeats}) + 1))
+dataset_idx=$(($job / {num_repeats}))
+repeat=$((($job % {num_repeats}) + 1))
 python simulation/rank.py SINGLE \\
                --mode-rank {mode_rank.value} \\
                --dataset-key "${{DATASETS[$dataset_idx]}}" \\
