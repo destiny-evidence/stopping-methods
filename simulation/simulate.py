@@ -115,12 +115,13 @@ def compute_stops(
     if (settings.result_data_path / results_file).exists():
         raise FileExistsError(f'For safety, I will not overwrite this file: {settings.result_data_path / results_file}')
 
-    for ranking_info_fp in settings.ranking_data_path.glob('*.json'):
+    info_files = list(settings.ranking_data_path.glob('*.json'))
+    for file_i, ranking_info_fp in enumerate(info_files):
         dataset = RankedDataset(ranking_info_fp=ranking_info_fp)
 
         ranking_fp = f'{ranking_info_fp.with_suffix('')}.feather'
 
-        logger.info(f'Ranking from: {ranking_fp}')
+        logger.info(f'({file_i + 1} / {len(info_files)}) Ranking from: {ranking_fp}')
         logger.debug(f'Info from {ranking_info_fp}')
 
         for batch_i, (batches, labels, scores, is_prioritised) in enumerate(
