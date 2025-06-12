@@ -11,6 +11,7 @@ from .knee import Knee
 from .alison import Alison
 from .batchprecision import BatchPrecision
 from .method2399 import Method2399
+from .apriori import Apriori
 
 __all__ = [
     'Buscar',
@@ -20,7 +21,8 @@ __all__ = [
     'HeuristicFixed',
     'Alison',
     'BatchPrecision',
-    'Method2399'
+    'Method2399',
+    'Apriori',
 ]
 
 
