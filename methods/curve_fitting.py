@@ -19,7 +19,7 @@ class CurveFittingLogEntry(AbstractLogEntry):
 
     expected_includes: float
     expected_remaining: int
-    predicted_recall: float
+    est_recall: float
     recall_target: float
 
 
@@ -60,7 +60,7 @@ class CurveFitting(AbstractMethod):
 
         return CurveFittingLogEntry(safe_to_stop=score is not None and score < 1 - recall_target,
                                     expected_includes=a,
-                                    predicted_recall=pred_recall,
+                                    est_recall=pred_recall,
                                     score=score,
                                     expected_remaining=int(abs(a - labels.sum())),
                                     recall_target=recall_target)

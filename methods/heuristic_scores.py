@@ -2,7 +2,6 @@ from typing import Generator, TypedDict
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import recall_score
 
 from shared.method import AbstractMethod, AbstractLogEntry, RECALL_TARGETS
 from shared.types import IntList, FloatList
@@ -32,6 +31,12 @@ class HeuristicScores(AbstractMethod):
                 is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
                 recall_target: float = 0.95,
                 inclusion_threshold: float = 0.5) -> HeuristicScoresLogEntry:
+        """
+        Use model scores to estimate the number of included documents and then
+        stop when the number of seen includes is above the recall target
+
+        Inspired by https://github.com/mpbron/allib/blob/stable/allib/stopcriterion/heuristic.py#L80
+        """
         y_pred = np.array(list_of_model_scores) >= inclusion_threshold
         y_true = np.array(list_of_labels) >= inclusion_threshold
         est_incl = y_pred.sum()
