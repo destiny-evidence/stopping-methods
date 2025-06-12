@@ -3,26 +3,28 @@ from typing import Generator, Type
 from shared.dataset import RankedDataset
 from shared.method import AbstractMethod
 
-from .buscar import Buscar
-from .heuristic_fractions import HeuristicFraction
-from .heuristic_fixed import HeuristicFixed
-from .curve_fitting import CurveFitting
-from .knee import Knee
 from .alison import Alison
-from .batchprecision import BatchPrecision
-from .method2399 import Method2399
 from .apriori import Apriori
+from .batchprecision import BatchPrecision
+from .buscar import Buscar
+from .curve_fitting import CurveFitting
+from .heuristic_fixed import HeuristicFixed
+from .heuristic_fractions import HeuristicFraction
+from .heuristic_scores import HeuristicScores
+from .knee import Knee
+from .method2399 import Method2399
 
 __all__ = [
-    'Buscar',
-    'Knee',
-    'CurveFitting',
-    'HeuristicFraction',
-    'HeuristicFixed',
     'Alison',
-    'BatchPrecision',
-    'Method2399',
     'Apriori',
+    'BatchPrecision',
+    'Buscar',
+    'CurveFitting',
+    'HeuristicFixed',
+    'HeuristicFraction',
+    'HeuristicScores',
+    'Knee',
+    'Method2399',
 ]
 
 
