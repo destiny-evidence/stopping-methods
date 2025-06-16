@@ -13,6 +13,7 @@ from .heuristic_fractions import HeuristicFraction
 from .heuristic_scores import HeuristicScores
 from .knee import Knee
 from .method2399 import Method2399
+from .quant import Quant
 
 __all__ = [
     'Alison',
@@ -25,6 +26,7 @@ __all__ = [
     'HeuristicScores',
     'Knee',
     'Method2399',
+    'Quant',
 ]
 
 
