@@ -84,6 +84,42 @@ class Quant(AbstractMethod):
         )
 
 
+def test(ranking: Path,
+         batch_size: int = 25):
+    dataset = RankedDataset(ranking)
+    batches, labels, scores, is_prioritised = dataset.data
+    labels = np.array(labels)
+    data = np.array([np.arange(len(labels)), labels.cumsum()]).T
+    # data = MinMaxScaler().fit_transform(data)
+    recall_target = 0.9
+    stopper = Quant(dataset)
+    xs = []
+    log = []
+    for n_seen in range(0, dataset.n_total, batch_size):
+        logger.info(f'Running batch for items {n_seen:,}–{n_seen + batch_size:,}')
+
+        batch_labels = labels[n_seen:n_seen + batch_size]
+        score = stopper.compute(
+            list_of_labels=batch_labels,
+            list_of_model_scores=np.array(scores),
+            is_prioritised=is_prioritised[n_seen:n_seen + batch_size],
+            recall_target=recall_target,
+            nstd=0.1,
+        )
+        logger.info(f' > score: {score}')
+        log.append(score)
+        xs.append(n_seen + batch_size)
+
+    fig, ax = plt.subplots()
+    ax.plot(data[:, 0] / dataset.n_total, data[:, 1], label='include', ls='-')
+    ax2 = ax.twinx()
+    ax2.plot(np.array(xs) / dataset.n_total, [l.est_var for l in log], label='est_var')
+    ax2.plot(np.array(xs) / dataset.n_total, [l.est_recall for l in log], label='est_recall')
+    # ax2.hlines(recall_target, 0, 1, lw=1)
+    fig.legend()
+    fig.show()
+
+
 
 if __name__ == '__main__':
     from shared.test import test_method, plots
@@ -91,3 +127,15 @@ if __name__ == '__main__':
     dataset, results = test_method(Quant, QuantParamSet(recall_target=0.95, nstd=1), 3)
     fig, ax = plots(dataset, results)
     fig.show()
+# if __name__ == '__main__':
+#     import typer
+#     from matplotlib import pyplot as plt
+#     from sklearn.preprocessing import MinMaxScaler
+#
+#     typer.run(test)
+#
+#     # print(data.shape)
+#     # knees = detect_knee(data, window_size=1, s=1)
+#     # data = np.array([np.arange(len(labels)) / len(labels),
+#     #                  labels.cumsum() / labels.sum()]).T[:3000]
+#     # knees = detect_knee(data[::500], window_size=1, s=100)
