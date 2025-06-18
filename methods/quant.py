@@ -18,13 +18,13 @@ logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
 
 
 class QuantParamSet(TypedDict):
-    target_recall: float
+    recall_target: float
     nstd: float
 
 
 class QuantLogEntry(AbstractLogEntry):
     KEY: str = 'QUANT'
-    target_recall: float
+    recall_target: float
     nstd: float
     est_recall: float
     est_var: float | None = None
@@ -34,21 +34,21 @@ class Quant(AbstractMethod):
     KEY: str = 'QUANT'
 
     def parameter_options(self) -> Generator[QuantParamSet, None, None]:
-        for target_recall in RECALL_TARGETS:
+        for recall_target in RECALL_TARGETS:
             for nstd in [0, 1, 2]:
-                yield QuantParamSet(target_recall=target_recall, nstd=nstd)
+                yield QuantParamSet(recall_target=recall_target, nstd=nstd)
 
     def compute(self,
                 list_of_labels: IntList,
                 list_of_model_scores: FloatList,
                 is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
-                target_recall: float = 0.9,
+                recall_target: float = 0.9,
                 nstd: float = 0) -> QuantLogEntry:
 
         if len(list_of_labels) < 2:
             return QuantLogEntry(
                 safe_to_stop=False,
-                target_recall=target_recall,
+                recall_target=recall_target,
                 nstd=nstd,
                 est_recall=0.0
             )
@@ -63,8 +63,8 @@ class Quant(AbstractMethod):
 
         if nstd == 0:
             return QuantLogEntry(
-                safe_to_stop=est_recall >= target_recall,
-                target_recall=target_recall,
+                safe_to_stop=est_recall >= recall_target,
+                recall_target=recall_target,
                 nstd=nstd,
                 est_recall=float(est_recall)
             )
@@ -74,10 +74,10 @@ class Quant(AbstractMethod):
         unknown_var = prod[len(labels):].sum()
         est_var = ((known_ps ** 2 / (known_ps + unknown_ps) ** 4 * all_var) +
                    (1 / (known_ps + unknown_ps) ** 2 * (all_var - unknown_var)))
-        safe_to_stop = est_recall - nstd * np.sqrt(est_var) >= target_recall
+        safe_to_stop = est_recall - nstd * np.sqrt(est_var) >= recall_target
         return QuantLogEntry(
             safe_to_stop=safe_to_stop,
-            target_recall=target_recall,
+            recall_target=recall_target,
             nstd=nstd,
             est_recall=float(est_recall),
             est_var=float(est_var)
@@ -91,7 +91,7 @@ def test(ranking: Path,
     labels = np.array(labels)
     data = np.array([np.arange(len(labels)), labels.cumsum()]).T
     # data = MinMaxScaler().fit_transform(data)
-    target_recall = 0.9
+    recall_target = 0.9
     stopper = Quant(dataset)
     xs = []
     log = []
@@ -103,7 +103,7 @@ def test(ranking: Path,
             list_of_labels=batch_labels,
             list_of_model_scores=np.array(scores),
             is_prioritised=is_prioritised[n_seen:n_seen + batch_size],
-            target_recall=target_recall,
+            recall_target=recall_target,
             nstd=0.1,
         )
         logger.info(f' > score: {score}')
@@ -115,7 +115,7 @@ def test(ranking: Path,
     ax2 = ax.twinx()
     ax2.plot(np.array(xs) / dataset.n_total, [l.est_var for l in log], label='est_var')
     ax2.plot(np.array(xs) / dataset.n_total, [l.est_recall for l in log], label='est_recall')
-    # ax2.hlines(target_recall, 0, 1, lw=1)
+    # ax2.hlines(recall_target, 0, 1, lw=1)
     fig.legend()
     fig.show()
 
