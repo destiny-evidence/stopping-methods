@@ -1,3 +1,6 @@
+import os,sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import logging
 from pathlib import Path
 from typing import Generator, TypedDict
@@ -53,13 +56,23 @@ class QuantCI(AbstractMethod):
                 est_recall=0.0
             )
 
-        scores = np.array(list_of_model_scores)
+        scores_all = np.array(list_of_model_scores)
         labels = np.array(list_of_labels)
+
+        # mask nans and infs in scores
+        mask = ~np.isfinite(scores_all)
+        scores = np.ma.array(scores_all, mask=mask)
 
         # `ps` stands for probability sum
         known_ps = scores[:len(labels)].sum()
         unknown_ps = scores[len(labels):].sum()
-        est_recall = known_ps / (known_ps + unknown_ps)
+
+        if known_ps is np.ma.masked or unknown_ps is np.ma.masked:
+            est_recall = np.nan
+        elif (known_ps + unknown_ps) <= 0:
+            est_recall = 0
+        else:
+            est_recall = known_ps / (known_ps + unknown_ps)
 
         if nstd == 0:
             return QuantCILogEntry(
@@ -74,7 +87,12 @@ class QuantCI(AbstractMethod):
         unknown_var = prod[len(labels):].sum()
         est_var = ((known_ps ** 2 / (known_ps + unknown_ps) ** 4 * all_var) +
                    (1 / (known_ps + unknown_ps) ** 2 * (all_var - unknown_var)))
-        safe_to_stop = est_recall - nstd * np.sqrt(est_var) >= recall_target
+        if est_var is np.ma.masked:
+            est_var = np.nan
+            safe_to_stop = False
+        else:
+            safe_to_stop = est_recall - nstd * np.sqrt(est_var) >= recall_target
+        
         return QuantCILogEntry(
             safe_to_stop=safe_to_stop,
             recall_target=recall_target,
@@ -124,9 +142,11 @@ def test(ranking: Path,
 if __name__ == '__main__':
     from shared.test import test_method, plots
 
-    dataset, results = test_method(QuantCI, QuantCIParamSet(recall_target=0.95, nstd=1), 3)
+    dataset, results = test_method(QuantCI, QuantCIParamSet(recall_target=0.8, nstd=2), 4)
     fig, ax = plots(dataset, results)
-    fig.show()
+    fig.savefig('data/plots/method_quant_viz.png')
+    logger.debug(f'estimated recall: {[res['est_recall'] for res in results]}')
+
 # if __name__ == '__main__':
 #     import typer
 #     from matplotlib import pyplot as plt
