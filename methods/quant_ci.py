@@ -17,12 +17,12 @@ logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
 # https://github.com/eugene-yang/tarexp/blob/main/tarexp/component/stopping.py
 
 
-class QuantParamSet(TypedDict):
+class QuantCIParamSet(TypedDict):
     recall_target: float
     nstd: float
 
 
-class QuantLogEntry(AbstractLogEntry):
+class QuantCILogEntry(AbstractLogEntry):
     KEY: str = 'QUANT'
     recall_target: float
     nstd: float
@@ -30,23 +30,23 @@ class QuantLogEntry(AbstractLogEntry):
     est_var: float | None = None
 
 
-class Quant(AbstractMethod):
+class QuantCI(AbstractMethod):
     KEY: str = 'QUANT'
 
-    def parameter_options(self) -> Generator[QuantParamSet, None, None]:
+    def parameter_options(self) -> Generator[QuantCIParamSet, None, None]:
         for recall_target in RECALL_TARGETS:
             for nstd in [0, 1, 2]:
-                yield QuantParamSet(recall_target=recall_target, nstd=nstd)
+                yield QuantCIParamSet(recall_target=recall_target, nstd=nstd)
 
     def compute(self,
                 list_of_labels: IntList,
                 list_of_model_scores: FloatList,
                 is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
                 recall_target: float = 0.9,
-                nstd: float = 0) -> QuantLogEntry:
+                nstd: float = 0) -> QuantCILogEntry:
 
         if len(list_of_labels) < 2:
-            return QuantLogEntry(
+            return QuantCILogEntry(
                 safe_to_stop=False,
                 recall_target=recall_target,
                 nstd=nstd,
@@ -62,7 +62,7 @@ class Quant(AbstractMethod):
         est_recall = known_ps / (known_ps + unknown_ps)
 
         if nstd == 0:
-            return QuantLogEntry(
+            return QuantCILogEntry(
                 safe_to_stop=est_recall >= recall_target,
                 recall_target=recall_target,
                 nstd=nstd,
@@ -75,7 +75,7 @@ class Quant(AbstractMethod):
         est_var = ((known_ps ** 2 / (known_ps + unknown_ps) ** 4 * all_var) +
                    (1 / (known_ps + unknown_ps) ** 2 * (all_var - unknown_var)))
         safe_to_stop = est_recall - nstd * np.sqrt(est_var) >= recall_target
-        return QuantLogEntry(
+        return QuantCILogEntry(
             safe_to_stop=safe_to_stop,
             recall_target=recall_target,
             nstd=nstd,
@@ -92,7 +92,7 @@ def test(ranking: Path,
     data = np.array([np.arange(len(labels)), labels.cumsum()]).T
     # data = MinMaxScaler().fit_transform(data)
     recall_target = 0.9
-    stopper = Quant(dataset)
+    stopper = QuantCI(dataset)
     xs = []
     log = []
     for n_seen in range(0, dataset.n_total, batch_size):
@@ -124,7 +124,7 @@ def test(ranking: Path,
 if __name__ == '__main__':
     from shared.test import test_method, plots
 
-    dataset, results = test_method(Quant, QuantParamSet(recall_target=0.95, nstd=1), 3)
+    dataset, results = test_method(QuantCI, QuantCIParamSet(recall_target=0.95, nstd=1), 3)
     fig, ax = plots(dataset, results)
     fig.show()
 # if __name__ == '__main__':
