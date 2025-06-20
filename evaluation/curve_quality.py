@@ -27,7 +27,7 @@ def assess_stepping(labels: Annotated[npt.NDArray[np.int8], Literal[1]]) -> floa
     # the rolling average of the previous finds
     avg_preceding = time_lags.rolling(5, center=False).mean().shift()
     # count the proportion where the time lag drops significantly
-    return sum(avg_preceding > (time_lags * 4)) / avg_preceding.count()
+    return 2 * sum(avg_preceding > (time_lags * 4)) / avg_preceding.count()
 
 
 def assess_gain(labels: Annotated[npt.NDArray[np.int8], Literal[1]]) -> float:
@@ -44,7 +44,7 @@ def assess_gain(labels: Annotated[npt.NDArray[np.int8], Literal[1]]) -> float:
     n_found = labels.cumsum()
     exp_found = [i * slope for i in range(1, total_records + 1)]
     # sum proportion found at each record screened and normalize by number of records
-    return sum((n_found - exp_found) / total_found) / total_records
+    return 2 * sum((n_found - exp_found) / total_found) / total_records
 
 
 RE_PARTS = re.compile(r'-(\d+)-(\d)-best')
@@ -73,6 +73,7 @@ if __name__ == '__main__':
             'labels': df['label'],
             'rand_incl': df[df['random'] == True]['label'].sum(),
             'rand_seen': (df['random'] == True).sum(),
+            'n_docs': df.shape[0],
         })
 
     logger.info(f'Found {len(DATASETS)} datasets')
@@ -81,6 +82,7 @@ if __name__ == '__main__':
 
     stepping_scores = []
     gain_scores = []
+    n_docs = []
 
     target_recalls = [.8, .85, .9, .95, .98, 1.0]
     worksavings = {f'{tr:.0%}': [] for tr in target_recalls}
@@ -88,6 +90,7 @@ if __name__ == '__main__':
     logger.info('Preparing plots and curve niceness scores...')
     for ds, infos in DATASETS.items():
         logger.debug(f'Plotting for {ds} with {len(infos)} repeats...')
+        n_docs.append(infos[0]['n_docs'])
         fig, ax = plt.subplots()
         for info in infos:
             n_samples = len(info['labels'])
@@ -135,13 +138,16 @@ if __name__ == '__main__':
     fig = plt.figure()
     gs0 = gridspec.GridSpec(nrows=1, ncols=2, figure=fig)
 
-    gs00 = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs0[0], hspace=0.7)
+    gs00 = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=gs0[0], hspace=0.5)
     ax = fig.add_subplot(gs00[0])
     ax.set_title('Histogram stepping scores')
-    pd.Series(stepping_scores).hist(ax=ax, bins=BINS)
+    pd.Series(stepping_scores).hist(ax=ax, bins=BINS, range=(0, 1))
     ax = fig.add_subplot(gs00[1])
     ax.set_title('Histogram gain scores')
-    pd.Series(gain_scores).hist(ax=ax, bins=BINS)
+    pd.Series(gain_scores).hist(ax=ax, bins=BINS, range=(0, 1))
+    ax = fig.add_subplot(gs00[2])
+    ax.set_title('Histogram dataset size')
+    pd.Series(n_docs).hist(ax=ax, bins=BINS)
 
     gs01 = gridspec.GridSpecFromSubplotSpec(len(target_recalls), 1, subplot_spec=gs0[1], hspace=1)
     pax = None
@@ -155,5 +161,6 @@ if __name__ == '__main__':
 
     fig.tight_layout()
     fig.savefig(TARGET_PATH / f'HISTOGRAMS.png')
+    fig.savefig(TARGET_PATH / f'HISTOGRAMS.pdf')
 
     logger.info('Finished!')
