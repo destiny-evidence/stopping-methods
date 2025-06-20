@@ -3,7 +3,6 @@ from typing import Generator, Type
 from shared.dataset import RankedDataset
 from shared.method import AbstractMethod
 
-from .alison import Alison
 from .apriori import Apriori
 from .batchprecision import BatchPrecision
 from .buscar import Buscar
@@ -22,7 +21,6 @@ from .quant_ci import QuantCI
 # from .chao import Chao
 
 __all__ = [
-    'Alison',
     'Apriori',
     'BatchPrecision',
     'Buscar',
