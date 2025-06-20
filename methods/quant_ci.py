@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     bs = 15
-    dataset, results = test_method(QuantCI, QuantCIParamSet(recall_target=0.8, nstd=2),
+    dataset, results = test_method(QuantCI, QuantCIParamSet(recall_target=0.8, nstd=1),
                                    dataset_i=4, batch_size=bs)
     est_recalls = np.array([res['est_recall'] for res in results])
 

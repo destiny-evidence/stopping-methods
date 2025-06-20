@@ -11,6 +11,7 @@ from .curve_fitting import CurveFitting
 from .heuristic_fixed import HeuristicFixed
 from .heuristic_fractions import HeuristicFraction
 from .heuristic_scores import HeuristicScores
+from .heuristic_random import HeuristicRandom
 from .knee import Knee
 from .method2399 import Method2399
 from .quant_ci import QuantCI
@@ -29,6 +30,7 @@ __all__ = [
     'HeuristicFixed',
     'HeuristicFraction',
     'HeuristicScores',
+    'HeuristicRandom',
     'Knee',
     'Method2399',
     'QuantCI',
