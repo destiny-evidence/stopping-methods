@@ -27,10 +27,12 @@ class PointProcess(AbstractMethod):
         for todo in [1.0, 1.1, 1.2]:
             yield PointProcessParamSet(todo=todo)
 
-    def compute(self,
+    @classmethod
+    def compute(cls,
+                dataset_size: int,
                 list_of_labels: IntList,
-                list_of_model_scores: FloatList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
+                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
+                list_of_model_scores: FloatList | None = None,
                 todo: float = 1.0) -> PointProcessLogEntry:
         # TODO
         return PointProcessLogEntry(

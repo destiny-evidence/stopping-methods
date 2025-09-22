@@ -33,13 +33,16 @@ class QuantCI(AbstractMethod):
 
     def parameter_options(self) -> Generator[QuantCIParamSet, None, None]:
         for recall_target in RECALL_TARGETS:
-            for nstd in [0, 1, 2]:
+            # for nstd in [0, 1, 2]:
+            for nstd in [1, 2]:  # n_std == 0 is equivalent to quant/heurisitc_scores!
                 yield QuantCIParamSet(recall_target=recall_target, nstd=nstd)
 
-    def compute(self,
+    @classmethod
+    def compute(cls,
+                dataset_size: int,
                 list_of_labels: IntList,
-                list_of_model_scores: FloatList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
+                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
+                list_of_model_scores: FloatList | None = None,
                 recall_target: float = 0.9,
                 nstd: float = 0) -> QuantCILogEntry:
 

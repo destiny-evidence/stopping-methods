@@ -8,7 +8,7 @@ import pandas as pd
 from scipy.stats import poisson
 from scipy.optimize import curve_fit, OptimizeWarning
 
-from shared.method import AbstractMethod, AbstractLogEntry, RECALL_TARGETS
+from shared.method import AbstractMethod, AbstractLogEntry, RECALL_TARGETS, CONFIDENCE_TARGETS
 from shared.types import IntList, FloatList
 
 Array = np.ndarray[tuple[int], np.dtype[np.int64]]
@@ -35,14 +35,16 @@ class CurveFitting(AbstractMethod):
     def parameter_options(self) -> Generator[CurveFittingParamSet, None, None]:
         for target in RECALL_TARGETS:
             for nw in [10, 50]:
-                for conf in [0.8, 0.95]:
+                for conf in CONFIDENCE_TARGETS:
                     yield CurveFittingParamSet(recall_target=target, confidence_level=conf, n_windows=nw)
 
+    @classmethod
     def compute(
-            self,
+            cls,
+            dataset_size: int,
             list_of_labels: IntList,
-            list_of_model_scores: FloatList,
-            is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
+            is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
+            list_of_model_scores: FloatList | None = None,
             recall_target: float = .07,  # 0.7  <- minimum desired recall level
             confidence_level: float = 0.95,  # 0.95  <- minimum desired probability for poisson
             n_windows: int = 10,  # 10  <- number of windows to make from sample

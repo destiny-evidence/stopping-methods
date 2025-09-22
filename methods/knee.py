@@ -51,10 +51,12 @@ class Knee(AbstractMethod):
                     yield KneeParamSet(window_size=window_size, threshold_ratio=th_r, threshold_peak=th_p,
                                        polyorder=1, smoothing=SmoothingMethod.SAVGOL)
 
-    def compute(self,
+    @classmethod
+    def compute(cls,
+                dataset_size: int,
                 list_of_labels: IntList,
-                list_of_model_scores: FloatList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
+                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
+                list_of_model_scores: FloatList | None = None,
                 window_size: int = 500,
                 smoothing: SmoothingMethod = SmoothingMethod.GAUSS,
                 polyorder: int = 1,
@@ -84,7 +86,7 @@ class Knee(AbstractMethod):
                                 slope_ratio=0, smoothing=smoothing)
 
         x = np.arange(len(list_of_labels))
-        x_norm = x / self.dataset.n_total
+        x_norm = x / dataset_size
         curve = labels.cumsum() / labels.sum()  # rescales y-values of inclusion curve
         window_size_ = min(window_size, len(list_of_labels))
 

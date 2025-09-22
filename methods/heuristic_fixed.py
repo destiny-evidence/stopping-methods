@@ -24,10 +24,12 @@ class HeuristicFixed(AbstractMethod):
         for target in [50, 100, 200, 300]:
             yield HeuristicFixedParamSet(num_to_stop=target)
 
-    def compute(self,
+    @classmethod
+    def compute(cls,
+                dataset_size: int,
                 list_of_labels: IntList,
-                list_of_model_scores: FloatList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
+                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
+                list_of_model_scores: FloatList | None = None,
                 num_to_stop: int=20) -> HeuristicFixedLogEntry:
         last_labels = list_of_labels[-min(len(list_of_labels), num_to_stop):]
 

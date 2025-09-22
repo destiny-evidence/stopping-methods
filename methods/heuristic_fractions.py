@@ -25,12 +25,14 @@ class HeuristicFraction(AbstractMethod):
         for target in [.01, .05, .075, .1, 0.2]:
             yield HeuristicFractionParamSet(fraction=target)
 
-    def compute(self,
+    @classmethod
+    def compute(cls,
+                dataset_size: int,
                 list_of_labels: IntList,
-                list_of_model_scores: FloatList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
+                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
+                list_of_model_scores: FloatList | None = None,
                 fraction: float = 0.05) -> HeuristicFractionLogEntry:
-        num_to_stop = int(self.dataset.n_total * fraction)
+        num_to_stop = int(dataset_size * fraction)
         last_labels = list_of_labels[-min(len(list_of_labels), num_to_stop):]
 
         return HeuristicFractionLogEntry(safe_to_stop=1 not in last_labels,

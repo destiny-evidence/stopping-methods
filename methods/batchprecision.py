@@ -25,11 +25,13 @@ class BatchPrecision(AbstractMethod):
         for batch_size in [500, 1000, 2000]:
             for threshold in [0.05, 0.1, 0.2]:
                 yield BatchPrecisionParamSet(batch_size=batch_size, threshold=threshold)
-    
-    def compute(self,
+
+    @classmethod
+    def compute(cls,
+                dataset_size: int,
                 list_of_labels: IntList,
-                list_of_model_scores: FloatList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
+                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
+                list_of_model_scores: FloatList | None = None,
                 batch_size: int = 1000,
                 threshold: float = 0.1) -> BatchPrecisionLogEntry:
         

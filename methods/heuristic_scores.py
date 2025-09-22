@@ -25,10 +25,12 @@ class HeuristicScores(AbstractMethod):
         for recall_target in RECALL_TARGETS:
             yield HeuristicScoresParamSet(recall_target=recall_target, inclusion_threshold=0.5)
 
-    def compute(self,
+    @classmethod
+    def compute(cls,
+                dataset_size: int,
                 list_of_labels: IntList,
-                list_of_model_scores: FloatList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
+                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
+                list_of_model_scores: FloatList | None = None,
                 recall_target: float = 0.95,
                 inclusion_threshold: float = 0.5) -> HeuristicScoresLogEntry:
         """

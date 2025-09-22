@@ -6,7 +6,7 @@ import pandas as pd
 
 from scipy.stats import hypergeom, nchypergeom_wallenius
 
-from shared.method import AbstractMethod, AbstractLogEntry, RECALL_TARGETS
+from shared.method import AbstractMethod, AbstractLogEntry, RECALL_TARGETS, CONFIDENCE_TARGETS
 from shared.types import IntList, FloatList
 
 Array = np.ndarray[tuple[int], np.dtype[np.int64]]
@@ -31,17 +31,22 @@ class Buscar(AbstractMethod):
     def parameter_options(self) -> Generator[BuscarParamSet, None, None]:
         for target in RECALL_TARGETS:
             for bias in [1., 2., 5., 10.]:
-                yield BuscarParamSet(recall_target=target, bias=bias, confidence_level=0.99)
+                for ci in CONFIDENCE_TARGETS:
+                    yield BuscarParamSet(recall_target=target, bias=bias, confidence_level=ci)
 
-    def compute(self,
-                list_of_labels: IntList,
-                list_of_model_scores: FloatList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
-                recall_target: float = 0.95,
-                bias: float = 1,
-                confidence_level: float = 0.95) -> BuscarLogEntry:
+    @classmethod
+    def compute(
+            cls,
+            dataset_size: int,
+            list_of_labels: IntList,
+            recall_target: float = 0.95,
+            bias: float = 1,
+            confidence_level: float = 0.95,
+            is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
+            list_of_model_scores: FloatList | None = None,
+    ) -> BuscarLogEntry:
         score = calculate_h0(labels_=list_of_labels,
-                             n_docs=self.dataset.n_total,
+                             n_docs=dataset_size,
                              recall_target=recall_target)
 
         return BuscarLogEntry(safe_to_stop=score is not None and score < 1 - confidence_level,

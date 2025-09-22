@@ -35,7 +35,10 @@ __all__ = [
     # 'ConfSeq',
     # 'SCAL',
     # 'RLStop',
-    # 'Chao'
+    # 'Chao',
+    # 'SALT'
+    # 'TARGET'
+    # 'PointProcess'
 ]
 
 

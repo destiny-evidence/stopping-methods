@@ -6,24 +6,24 @@ from shared.method import AbstractMethod, AbstractLogEntry
 from shared.types import IntList, FloatList
 
 
-# https://dl.acm.org/doi/abs/10.1145/2983323.2983776
-# via https://github.com/dli1/auto-stop-tar/blob/master/autostop/tar_model/scal.py
+# https://github.com/levnikmyskin/salt
+# https://link.springer.com/article/10.1007/s10618-023-00961-5
 
-class SCALParamSet(TypedDict):
+class SALTParamSet(TypedDict):
     todo: float
 
 
-class SCALLogEntry(AbstractLogEntry):
-    KEY: str = 'S-CAL'
+class SALTLogEntry(AbstractLogEntry):
+    KEY: str = 'SALτ'
     todo: float
 
 
-class SCAL(AbstractMethod):
-    KEY: str = 'S-CAL'
+class SALT(AbstractMethod):
+    KEY: str = 'SALτ'
 
-    def parameter_options(self) -> Generator[SCALParamSet, None, None]:
+    def parameter_options(self) -> Generator[SALTParamSet, None, None]:
         for todo in [1.0, 1.1, 1.2]:
-            yield SCALParamSet(todo=todo)
+            yield SALTParamSet(todo=todo)
 
     @classmethod
     def compute(cls,
@@ -31,9 +31,9 @@ class SCAL(AbstractMethod):
                 list_of_labels: IntList,
                 is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
                 list_of_model_scores: FloatList | None = None,
-                todo: float = 1.0) -> SCALLogEntry:
+                todo: float = 1.0) -> SALTLogEntry:
         # TODO
-        return SCALLogEntry(
+        return SALTLogEntry(
             safe_to_stop=False,
             todo=todo,
         )
@@ -42,6 +42,6 @@ class SCAL(AbstractMethod):
 if __name__ == '__main__':
     from shared.test import test_method, plots
 
-    dataset, results = test_method(SCAL, SCALParamSet(todo=1.0), 2)
+    dataset, results = test_method(SALT, SALTParamSet(todo=1.0), 2)
     fig, ax = plots(dataset, results)
     fig.show()

@@ -27,11 +27,13 @@ class Method2399(AbstractMethod):
     def parameter_options(self) -> Generator[Method2399ParamSet, None, None]:
         for alpha in [1.0, 1.1, 1.2]:
             yield Method2399ParamSet(alpha=alpha, constant=2399)
-    
-    def compute(self,
+
+    @classmethod
+    def compute(cls,
+                dataset_size: int,
                 list_of_labels: IntList,
-                list_of_model_scores: FloatList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
+                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
+                list_of_model_scores: FloatList | None = None,
                 alpha: float = 1.0,
                 constant: int = 2399) -> Method2399LogEntry:
         

@@ -4,8 +4,9 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import recall_score
 
-from shared.method import AbstractMethod, AbstractLogEntry, RECALL_TARGETS
+from shared.method import AbstractMethod, AbstractLogEntry, RECALL_TARGETS, INCLUSION_THRESHOLDS
 from shared.types import IntList, FloatList
+
 
 class AprioriParamSet(TypedDict):
     recall_target: float
@@ -24,12 +25,15 @@ class Apriori(AbstractMethod):
 
     def parameter_options(self) -> Generator[AprioriParamSet, None, None]:
         for recall_target in RECALL_TARGETS:
-            yield AprioriParamSet(recall_target=recall_target, inclusion_threshold=0.5)
+            for inclusion_threshold in INCLUSION_THRESHOLDS:
+                yield AprioriParamSet(recall_target=recall_target, inclusion_threshold=inclusion_threshold)
 
-    def compute(self,
+    @classmethod
+    def compute(cls,
+                dataset_size: int,
                 list_of_labels: IntList,
-                list_of_model_scores: FloatList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
+                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
+                list_of_model_scores: FloatList | None = None,
                 recall_target: float = 0.95,
                 inclusion_threshold: float = 0.5) -> AprioriLogEntry:
         # inspired by https://github.com/mpbron/allib/blob/stable/allib/stopcriterion/apriori.py#L18

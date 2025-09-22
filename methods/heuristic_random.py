@@ -24,10 +24,12 @@ class HeuristicRandom(AbstractMethod):
         for recall_target in RECALL_TARGETS:
             yield HeuristicRandomParamSet(recall_target=recall_target)
 
-    def compute(self,
+    @classmethod
+    def compute(cls,
+                dataset_size: int,
                 list_of_labels: IntList,
-                list_of_model_scores: FloatList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
+                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
+                list_of_model_scores: FloatList | None = None,
                 recall_target: float = 0.95) -> HeuristicRandomLogEntry:
         """
         Use inclusion rate during random sample to extrapolate overall number of included records.
