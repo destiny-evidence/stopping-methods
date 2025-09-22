@@ -33,6 +33,32 @@ export PYTHONPATH=$PYTHONPATH:/path/to/stopping-methods && python simulation/mai
 This will, for example, download the synergy dataset and store it locally and maybe fetch additional information to
 enrich the dataset from openalex.
 
+### HPC setup
+```bash
+cd /p/tmp/user/
+git clone git@github.com:destiny-evidence/stopping-methods.git
+cd stopping-methods
+module load anaconda/2024.10
+# verify we are really using the correct python
+which python
+python --version
+# set up virtualenv
+python -m venv data/venv
+source data/venv/bin/activate
+pip install -r requirements.txt
+
+# pre-compute rankings
+ PYTHONPATH=. python simulation/rank.py SLURM --models trans-rank --models svm --models lightgbm --models sgd  --models logreg \
+                                --dyn-min-batch-size 25 --dyn-max-batch-size 200 --dyn-min-batch-incl 2 \
+                                --num-random-init 500 --min-dataset-size 1000 --num-repeats 3 \
+                                --min-inclusion-rate 0.01 --tuning-interval 4 --store-feather --slurm-user "???@pik-potsdam.de" --slurm-hours 23 --slurm-gpu
+# or
+ PYTHONPATH=. python simulation/rank.py SLURM --models trans-rank --models svm --models lightgbm --models sgd  --models logreg \
+                                --dyn-min-batch-size 25 --dyn-max-batch-size 200 --dyn-min-batch-incl 2 \
+                                --num-random-init 500 --min-dataset-size 1000 --num-repeats 3 \
+                                --min-inclusion-rate 0.01 --tuning-interval 4 --store-feather --slurm-user "???@pik-potsdam.de" --slurm-hours 23
+```
+
 ## Pre-computing rankings
 
 The following will pre-compute all rankings that are now yet there. You can run this script repeatedly and it will
