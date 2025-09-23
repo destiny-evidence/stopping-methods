@@ -13,7 +13,7 @@ logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
 # This is based on the implementation of the Quant Rule from the paper: Heuristic stopping rules for technology-assisted review (Yang 2021)
 # Implementation taken from class QuantStoppingRule(StoppingRule) in Tarexo framework.
 # https://github.com/eugene-yang/tarexp/blob/main/tarexp/component/stopping.py
-
+# https://github.com/levnikmyskin/salt/blob/main/baselines/lewis_yang/quant_ci.py
 
 class QuantCIParamSet(TypedDict):
     recall_target: float

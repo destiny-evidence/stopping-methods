@@ -315,6 +315,10 @@ class RankedDataset:
 
         self._scores: list[float] | None = None
 
+    def __str__(self):
+        return (f'RankedDataset(n_total={self.n_total:,}, n_incl={self.n_incl:,}, incl_rate={self.inclusion_rate:.1%})'
+                f'| {self.info['key']}')
+
     @property
     def n_total(self) -> int:
         return self.ranking.shape[0]

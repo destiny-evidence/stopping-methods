@@ -5,7 +5,7 @@ import pandas as pd
 from scipy.signal import savgol_filter
 from scipy.ndimage import gaussian_filter1d
 
-from shared.method import AbstractMethod, AbstractLogEntry
+from shared.method import AbstractMethod, AbstractLogEntry, WINDOW_SIZES
 from shared.types import IntList, FloatList
 
 Array = np.ndarray[tuple[int], np.dtype[np.int64]]
@@ -45,7 +45,7 @@ class Knee(AbstractMethod):
         #         for th_p in [0.2, 0.3, 0.4]:
         #             yield KneeParamSet(window_size=window_size, threshold_ratio=th_r, threshold_peak=th_p,
         #                                polyorder=1, smoothing=SmoothingMethod.GAUSS)
-        for window_size in [500]:
+        for window_size in WINDOW_SIZES:
             for th_r in [2, 3, 4, 7]:
                 for th_p in [0.2, 0.3, 0.4]:
                     yield KneeParamSet(window_size=window_size, threshold_ratio=th_r, threshold_peak=th_p,

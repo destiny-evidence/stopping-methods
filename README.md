@@ -35,6 +35,8 @@ Here is an example on how you can use the implemented stopping methods in your o
 Simply import the method(s) you'd like to use and apply them.
 When the `safe_to_stop` entry of the returned result is `True`, the stopping criterion is met.
 
+All lists in the example could also be 1-D numpy arrays or pandas series.
+
 ```python
 from methods.buscar import Buscar
 
@@ -45,14 +47,14 @@ stopping_result = Buscar.compute(
     # Inclusion decisions for the 10 records we already screened (0: exclude, 1: include)
     list_of_labels=[0, 0, 1, 1, 0, 1, 0, 0, 1, 0],
 
-    # Ranking model scores for *all* records
-    # Not all scores use this information, so might be optional
+    # First five are from initial random sample, rest is prioritised
+    # Not all scores use this information, so might be optional; same length as list_of_labels
+    is_prioritised=[False, False, False, False, False, True, True, True, True, True],
+
+    # Ranking model scores for all records (scores for random samples can be None instead of float)
+    # Not all methods use this information, so might be optional; len(list_of_model_scores) == dataset_size
     #                    | seen: sorted by screening order                       | unseen: sorted by score   |
     list_of_model_scores=[0.4, 0.59, 0.48, 0.57, 0.5, 0.45, 0.36, 0.35, 0.32, 0.3, 0.25, 0.2, 0.19, 0.18, 0.1],
-
-    # First five are from initial random sample, rest is prioritised
-    # Not all scores use this information, so might be optional
-    is_prioritised=[False, False, False, False, False, True, True, True, True, True],
 
     # Method-specific parameters
     recall_target=0.95,

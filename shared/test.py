@@ -25,6 +25,7 @@ def test_method(Method: Type[AbstractMethod],
     dataset = RankedDataset(ranking_info_fp=fp)
     method = Method(dataset)
     logger.info(f'Ranking from: {fp}')
+    logger.info(dataset)
 
     results = []
     for batch_i, (batches, labels, scores, is_prioritised) in enumerate(
@@ -42,14 +43,16 @@ def test_method(Method: Type[AbstractMethod],
         }
         with elapsed_timer(logger, f'Batch {batch_i} took {method.KEY}'):
             results.append(base_entry | method.compute(
+                dataset_size=dataset.n_total,
                 list_of_labels=labels,
                 list_of_model_scores=scores,
                 is_prioritised=is_prioritised,
                 **paramset).model_dump())
+            logger.debug(f'  -> {results[-1]}')
     return dataset, results
 
 
-def plots(dataset: RankedDataset, results: list[dict[str, Any]]) -> tuple[plt.Figure, plt.Axes]:
+def plots(dataset: RankedDataset, results: list[dict[str, Any]], params: dict[str, Any]) -> tuple[plt.Figure, plt.Axes]:
     fig, ax = plt.subplots(layout='constrained', dpi=150, figsize=(12, 10))
     labels = dataset.ranking['label']
     rand = dataset.ranking.reset_index(drop=True)['random'] == True
@@ -97,6 +100,9 @@ def plots(dataset: RankedDataset, results: list[dict[str, Any]]) -> tuple[plt.Fi
     ax.set_title(f'{dataset.info['key']}', fontsize=10)
     ax.set_xlabel(f'Number of seen documents (total={dataset.n_total:,})')
     ax.set_ylabel(f'Number of included documents (total={curve.max():,})')
-    fig.legend(loc='outside right center')
+    fig.legend(
+        loc='outside right center',
+        title='\n'.join([f'{k}: {v}' for k, v in params.items()]),
+    )
 
     return fig, ax
