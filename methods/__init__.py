@@ -14,6 +14,8 @@ from .heuristic_random import HeuristicRandom
 from .knee import Knee
 from .method2399 import Method2399
 from .quant_ci import QuantCI
+from .tm_qbcb import TargetQBCB
+from .ipp import PointProcess
 
 # from .conf import ConfSeq
 # from .scal import SCAL
@@ -32,13 +34,13 @@ __all__ = [
     'Knee',
     'Method2399',
     'QuantCI',
+    'TargetQBCB',
+    'PointProcess',
     # 'ConfSeq',
     # 'SCAL',
     # 'RLStop',
     # 'Chao',
-    # 'SALT'
-    # 'TARGET'
-    # 'PointProcess'
+    # 'SALT',
 ]
 
 

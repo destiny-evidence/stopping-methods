@@ -10,6 +10,8 @@ from sklearn.svm import SVC
 from sklearn.base import clone as clone_model
 from sklearn.exceptions import DataConversionWarning, ConvergenceWarning
 from sklearn.linear_model import SGDClassifier, LogisticRegression
+from sklearn.ensemble import IsolationForest
+from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from lightgbm import LGBMClassifier
 
@@ -30,7 +32,7 @@ warnings.filterwarnings(action='ignore')
 # Not everything is caught when parallelising, this helps...
 os.environ['PYTHONWARNINGS'] = 'ignore'
 
-type Classifier = SGDClassifier | SVC | LogisticRegression | LGBMClassifier
+type Classifier = SGDClassifier | SVC | LogisticRegression | LGBMClassifier | GaussianNB | IsolationForest
 
 
 class _SimpleRanking(AbstractRanker):
@@ -242,6 +244,69 @@ class RegressionRanker(_SimpleRanking):
             'C': trial.suggest_float('C', low=0.01, high=10, log=True),
             'solver': trial.suggest_categorical('solver', ['saga', 'liblinear', 'lbfgs']),
         }
+
+
+class IsolationForestRanker(_SimpleRanking):
+    name = 'isoforest'
+
+    def __init__(self,
+                 train_mode: TrainMode = TrainMode.RESET,
+                 tuning: bool = False,
+                 tuning_trials: int = 35,
+                 model_params: dict[str, Any] | None = None,
+                 random_seed: int | None = None,
+                 **kwargs: dict[str, Any]):
+        super().__init__(
+            BaseModel=IsolationForest,
+            model_params={
+                             'n_estimators': 100,
+                             'max_samples': "auto",
+                             'contamination': "auto",
+                             'max_features': 1.0,
+                             'bootstrap': False,
+                             'n_jobs': None,
+                             'random_state': None,
+                             'verbose': 0,
+                             'warm_start': False,
+                         } | (model_params or {}),
+            train_mode=train_mode,
+            tuning=tuning,
+            tuning_trials=tuning_trials,
+            scoring='recall',
+            random_seed=random_seed,
+            **kwargs
+        )
+
+    def _hp_space(self, trial: optuna.Trial) -> dict[str, Any]:
+        return {
+            'n_estimators': trial.suggest_float('n_estimators', low=20, high=250, log=True),
+            'max_features': trial.suggest_float('max_features', low=0.2, high=1.0),
+        }
+
+
+class NaiveBayesRanker(_SimpleRanking):
+    name = 'naivebayes'
+
+    def __init__(self,
+                 train_mode: TrainMode = TrainMode.RESET,
+                 tuning: bool = False,
+                 tuning_trials: int = 35,
+                 model_params: dict[str, Any] | None = None,
+                 random_seed: int | None = None,
+                 **kwargs: dict[str, Any]):
+        super().__init__(
+            BaseModel=GaussianNB,
+            model_params=(model_params or {}),
+            train_mode=train_mode,
+            tuning=tuning,
+            tuning_trials=tuning_trials,
+            scoring='recall',
+            random_seed=random_seed,
+            **kwargs
+        )
+
+    def _hp_space(self, trial: optuna.Trial) -> dict[str, Any]:
+        return {}
 
 
 class LightGBMRanker(_SimpleRanking):

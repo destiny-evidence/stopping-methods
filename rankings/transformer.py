@@ -102,7 +102,8 @@ class CustomTrainer(Trainer):
     def predict_proba(self, test_dataset: Dataset) -> np.array:
         predictions = self.predict(test_dataset).predictions
         logits = predictions if torch.is_tensor(predictions) else tensor(predictions)
-        return self.activation(logits).numpy()
+        # return self.activation(logits).numpy()
+        return logits.numpy()  # FIXME: does this still work? returning unscaled logits should be better for ranking
 
 
 def tokenize(texts: list[str], labels: np.ndarray, model: str, cache_dir: Path | None = None) -> Dataset:

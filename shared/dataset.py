@@ -357,7 +357,11 @@ class RankedDataset:
         #         for li in batch[f'scores_batch_{bi}'].tolist()
         #     ]
         # return self._scores
-        return self.ranking['score']
+        return self.ranking.sort_values(['batch', 'order'])['score'].tolist()
+
+    @property
+    def labels(self) -> list[int]:
+        return self.ranking.sort_values(['batch', 'order'])['label'].tolist()
 
     @property
     def __len__(self) -> int:
