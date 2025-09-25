@@ -13,16 +13,17 @@ from shared.types import IntList, FloatList, Mask
 # https://github.com/levnikmyskin/salt/blob/main/baselines/lewis_yang/qbcb.py
 
 class TargetParamSet(TypedDict):
-    target_recall: float
+    recall_target: float
     confidence_level: float
     positive_sample_size: int
 
 
 class TargetLogEntry(AbstractLogEntry):
     KEY: str = 'TM_QBCB'
-    target_recall: float
+    recall_target: float
     confidence_level: float
     positive_sample_size: int
+    n_sample: int
     required_overlap: int | None = None
     n_overlap: int | None = None
 
@@ -34,7 +35,7 @@ class TargetQBCB(AbstractMethod):
         for tr in RECALL_TARGETS:
             for ct in CONFIDENCE_TARGETS:
                 for ps in [5, 10, 25, 50, 100]:
-                    yield TargetParamSet(target_recall=tr, confidence_level=ct, positive_sample_size=ps)
+                    yield TargetParamSet(recall_target=tr, confidence_level=ct, positive_sample_size=ps)
 
     def compute(
             self,
@@ -44,7 +45,7 @@ class TargetQBCB(AbstractMethod):
             list_of_model_scores: FloatList,
             positive_sample_size: int = 50,
             confidence_level: float = 0.95,
-            target_recall: float = 0.95,
+            recall_target: float = 0.95,
     ) -> TargetLogEntry:
         """
         QBCB from Lewis, Yang, and Frieder. CIKM '21.
@@ -62,7 +63,7 @@ class TargetQBCB(AbstractMethod):
 
         # Not enough data to meet the minimum size
         if n_total_incl < positive_sample_size:
-            return TargetLogEntry(safe_to_stop=False, target_recall=target_recall,
+            return TargetLogEntry(safe_to_stop=False, recall_target=recall_target, n_sample=n_total,
                                   confidence_level=confidence_level, positive_sample_size=positive_sample_size)
 
         idxs_seen = np.arange(n_seen)
@@ -74,24 +75,25 @@ class TargetQBCB(AbstractMethod):
         coeffs = binom.cdf(
             np.arange(positive_sample_size + 1),
             positive_sample_size,
-            target_recall,
+            recall_target,
         )
         required_overlap = np.argmax(coeffs >= confidence_level) + 1
         n_overlap = len(np.intersect1d(idxs_seen, idxs_sample_incl))
         return TargetLogEntry(
             safe_to_stop=n_overlap >= required_overlap,
-            target_recall=target_recall,
+            recall_target=recall_target,
             confidence_level=confidence_level,
             positive_sample_size=positive_sample_size,
             required_overlap=required_overlap,
             n_overlap=n_overlap,
+            n_sample=len(idxs_sample),
         )
 
 
 if __name__ == '__main__':
     from shared.test import test_method, plots
 
-    params = TargetParamSet(confidence_level=0.8, target_recall=0.7,
+    params = TargetParamSet(confidence_level=0.8, recall_target=0.7,
                             positive_sample_size=10)
     dataset, results = test_method(TargetQBCB, params, 2)
     fig, ax = plots(dataset, results, params)
