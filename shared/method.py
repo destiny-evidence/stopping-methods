@@ -1,18 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import Any, Generator
+from typing import Generator, TypedDict
 
-from pydantic import BaseModel
-import pandas as pd
-import numpy as np
+from shared.types import Bounds, Labels, Scores, Sampling
+from typing import Generic, TypeVar
 
-from shared.dataset import Dataset, RankedDataset
-from shared.types import IntList, FloatList
-
-
-class AbstractLogEntry(BaseModel):
-    KEY: str
-    safe_to_stop: bool
-    score: float | None = None
+T_scores = TypeVar("T_scores", bound=Scores | None)
+T_labels = TypeVar("T_labels", bound=Labels | None)
+T_sampling = TypeVar("T_sampling", bound=Sampling | None)
+T_bounds = TypeVar("T_bounds", bound=Bounds | None)
 
 
 RECALL_TARGETS = [.8, .9, .95, .99]
@@ -22,63 +17,51 @@ WINDOW_SIZES = [50, 500, 1000]
 NUM_WINDOWS = [5, 10, 20, 50, 100]
 
 
-class AbstractMethod(ABC):
+class _MethodParams(TypedDict, total=False):
+    recall_target: float | None
+    confidence_level: float | None
+
+
+class _LogEntry(TypedDict):
+    KEY: str
+    safe_to_stop: bool
+    score: float | None
+
+
+class Method(ABC, Generic[T_scores, T_labels, T_bounds, T_sampling]):
     KEY: str
 
-    def __init__(self, dataset: Dataset | RankedDataset, **kwargs: dict[str, Any]):
-        super().__init__(**kwargs)
-        self.dataset = dataset
-
+    @classmethod
     @abstractmethod
-    def parameter_options(self) -> Generator[dict[str, Any], None, None]:
+    def parameter_options(cls) -> Generator[_MethodParams, None, None]:
         raise NotImplementedError()
 
     @classmethod
     @abstractmethod
     def compute(cls,
-                dataset_size: int,  # Total number of records in datasets (seen + unseen)
-                list_of_labels: IntList,
-                list_of_model_scores: FloatList | None = None,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
-                **kwargs: dict[str, Any]) -> AbstractLogEntry:
+                n_total: int,  # Total number of records in datasets (seen + unseen)
+                labels: Labels,  # Seen labels
+                scores: T_scores,  # Model ranking scores for entire set (optional for some methods)
+                is_prioritised: T_sampling,  # Mask for randomly sampled data (optional for some methods)
+                full_labels: T_labels,  # Full annotation, only for fully annotated datasets to simulate target methods
+                bounds: T_bounds,  # All batch boundaries in `labels` (optional for some methods)
+                **kwargs: _MethodParams) -> _LogEntry:
         raise NotImplementedError()
 
     @classmethod
     def retrospective(cls,
-                      dataset_size: int,  # Total number of records in datasets (seen + unseen)
-                      list_of_labels: IntList,
-                      list_of_model_scores: FloatList | None = None,
-                      is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
+                      n_total: int,
+                      labels: Labels,
+                      scores: T_scores,
+                      is_prioritised: T_sampling,
+                      bounds: T_bounds,
                       batch_size: int = 100,
-                      **kwargs: dict[str, Any]) -> Generator[AbstractLogEntry, None, None]:
-        for n_seen_batch in range(batch_size, len(list_of_labels), batch_size):
-            batch_labels = list_of_labels[:n_seen_batch]
-            yield cls.compute(dataset_size=dataset_size,
-                              list_of_labels=batch_labels,
-                              list_of_model_scores=list_of_model_scores,
-                              is_prioritised=is_prioritised,
+                      **kwargs: _MethodParams) -> Generator[_LogEntry, None, None]:
+        for n_seen_batch in range(batch_size, len(labels), batch_size):
+            yield cls.compute(n_total=n_total,
+                              labels=labels[:n_seen_batch],
+                              scores=scores,
+                              is_prioritised=is_prioritised[:n_seen_batch],
+                              bounds=bounds[:n_seen_batch],
+                              full_labels=labels,
                               **kwargs)
-
-    def compute_(self,
-                 list_of_labels: IntList,
-                 list_of_model_scores: FloatList | None = None,
-                 is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
-                 **kwargs: dict[str, Any]) -> AbstractLogEntry:
-        return self.compute(dataset_size=self.dataset.n_total,
-                            list_of_labels=list_of_labels,
-                            list_of_model_scores=list_of_model_scores,
-                            is_prioritised=is_prioritised,
-                            **kwargs)
-
-    def retrospective_(self,
-                       list_of_labels: IntList,
-                       list_of_model_scores: FloatList | None = None,
-                       is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
-                       batch_size: int = 100,
-                       **kwargs: dict[str, Any]) -> Generator[AbstractLogEntry, None, None]:
-        yield from self.retrospective(dataset_size=self.dataset.n_total,
-                                      list_of_labels=list_of_labels,
-                                      list_of_model_scores=list_of_model_scores,
-                                      is_prioritised=is_prioritised,
-                                      batch_size=batch_size,
-                                      **kwargs)

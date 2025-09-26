@@ -4,7 +4,6 @@ import random
 from enum import Enum
 from pathlib import Path
 from typing import Generator
-from itertools import batched
 
 import numpy as np
 import pandas as pd
@@ -14,6 +13,7 @@ from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 
 from .text_utils import process_text_aggressive
+from .types import BatchBounds, Labels, Scores, Sampling, Bounds
 
 logger = logging.getLogger('dataset')
 
@@ -311,7 +311,7 @@ class RankedDataset:
 
         self.info['key'] = ranking_info_fp.stem
 
-        self.ranking = pd.read_feather(self.ranking_fp)
+        self.ranking = pd.read_feather(self.ranking_fp)#.replace({np.nan: None})
 
         self._scores: list[float] | None = None
 
@@ -367,48 +367,53 @@ class RankedDataset:
     def __len__(self) -> int:
         return self.n_total
 
-    @property
-    def data(self) -> tuple[list[int], list[int], list[float], list[bool]]:
-        batches = []
-        scores = []
-        labels = []
-        is_prioritised = []
-        for bi, b_labels, b_scores, b_prio in self.it_sim_batches():
-            scores += b_scores
-            labels += b_labels
-            is_prioritised += b_prio
-            batches += [bi] * len(b_scores)
-        return batches, labels, scores, is_prioritised
+    def bounds(self, batch_size: int | None = None, orig_batch_nums: bool = True) -> BatchBounds:
+        if batch_size is None:
+            counts = self.ranking.groupby('batch').count()['id']
+            return np.array([counts.index, counts.cumsum() - counts.iloc[0], counts.cumsum()]).T
 
-    def it_sim_batches(self) -> Generator[tuple[int, list[int], list[float], list[bool]], None, None]:
-        for bi, batch in self.ranking.groupby('batch'):
-            batch = batch.sort_values('order')
-            # TODO: add this back in for fully scored files
-            # yield bi, batch['label'].tolist(), batch[f'scores_batch_{bi}'].tolist(), (~batch['random']).tolist()
-            yield int(bi), batch['label'].tolist(), batch['score'].tolist(), (~batch['random']).tolist()
+        bounds = np.linspace(start=0, stop=self.n_total,
+                             num=(self.n_total // batch_size) + 1,
+                             endpoint=True, dtype=int).tolist()
+        if orig_batch_nums:
+            batches = self.ranking.sort_values(['batch', 'order']).iloc[bounds[:-1]]['batch']
+        else:
+            batches = list(range(len(bounds)))
+        return np.array(list(zip(batches, bounds[:-1], bounds[1:])))
 
-    def it_cum_sim_batches(self) -> Generator[tuple[int, list[int], list[float], list[bool]], None, None]:
-        scores = np.array([])
-        labels = np.array([])
-        is_prioritised = np.array([])
-        for bi, b_scores, b_labels, b_prio in self.it_sim_batches():
-            scores = np.concatenate(scores, b_scores)
-            labels = np.concatenate(labels, b_labels)
-            is_prioritised = np.concatenate(is_prioritised, b_prio)
-            yield bi, labels, self.scores, is_prioritised
+    def batches(
+            self,
+            batch_size: int | None = None,
+            orig_batch_nums: bool = True,
+    ) -> Generator[tuple[int, tuple[int, int], tuple[Labels, Scores, Sampling]], None, None]:
+        df = self.ranking.sort_values(['batch', 'order'])
+        for bi, idx_start, idx_end in self.bounds(batch_size=batch_size, orig_batch_nums=orig_batch_nums):
+            yield (
+                bi,
+                (idx_start, idx_end), (
+                    df.iloc[idx_start:idx_end]['label'].to_numpy(),
+                    df['score'].to_numpy(),
+                    (~df.iloc[idx_start:idx_end]['random']).to_numpy(),
+                )
+            )
 
-    def it_batches(self, batch_size: int) -> Generator[tuple[int, list[int], list[float], list[bool]], None, None]:
-        for batches, labels, scores, is_prioritised in zip(*[batched(pt, batch_size) for pt in self.data]):
-            yield batches, labels, self.scores, is_prioritised
-
-    def it_cum_batches(self, batch_size: int) -> Generator[tuple[np.array, np.array, np.array, np.array], None, None]:
-        batches = []
-        scores = []
-        labels = []
-        is_prioritised = []
-        for bis, b_labels, b_scores, b_prio in zip(*[batched(pt, batch_size) for pt in self.data]):
-            batches += bis
-            scores += b_scores
-            labels += b_labels
-            is_prioritised += b_prio
-            yield np.array(batches), np.array(labels), np.array(self.scores), np.array(is_prioritised)
+    def cum_batches(
+            self,
+            batch_size: int | None = None ,
+            orig_batch_nums: bool = True,
+    ) -> Generator[tuple[list[int], Bounds, tuple[Labels, Scores, Sampling]], None, None]:
+        df = self.ranking.sort_values(['batch', 'order'])
+        acc_bi: list[int] = []
+        acc_bounds: list[tuple[int, int]] = []
+        for bi, idx_start, idx_end in self.bounds(batch_size=batch_size, orig_batch_nums=orig_batch_nums):
+            acc_bi.append(bi)
+            acc_bounds.append((idx_start, idx_end))
+            yield (
+                acc_bi,
+                np.array(acc_bounds, dtype=np.int64),
+                (
+                    df.iloc[:idx_end]['label'].to_numpy(),
+                    df['score'].to_numpy(),
+                    (~df.iloc[:idx_end]['random']).to_numpy(),
+                )
+            )

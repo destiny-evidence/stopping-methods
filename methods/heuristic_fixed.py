@@ -1,37 +1,41 @@
-from typing import Generator, TypedDict
-
-import numpy as np
-import pandas as pd
-from shared.method import AbstractMethod, AbstractLogEntry
-from shared.types import IntList, FloatList
-
-Array = np.ndarray[tuple[int], np.dtype[np.int64]]
+from shared.method import Method, _MethodParams, _LogEntry
+from shared.types import Labels
+from typing import Generator
 
 
-class HeuristicFixedParamSet(TypedDict):
+class MethodParams(_MethodParams):
     num_to_stop: int
 
 
-class HeuristicFixedLogEntry(AbstractLogEntry):
+class LogEntry(_LogEntry, MethodParams):
+    pass
+
+
+class HeuristicFixed(Method[None, None, None, None]):
     KEY: str = 'HEURISTIC_FIX'
-    num_to_stop: int
 
-
-class HeuristicFixed(AbstractMethod):
-    KEY: str = 'HEURISTIC_FIX'
-
-    def parameter_options(self) -> Generator[HeuristicFixedParamSet, None, None]:
+    def parameter_options(self) -> Generator[MethodParams, None, None]:
         for target in [50, 100, 200, 300]:
-            yield HeuristicFixedParamSet(num_to_stop=target)
+            yield MethodParams(num_to_stop=target)
 
     @classmethod
     def compute(cls,
-                dataset_size: int,
-                list_of_labels: IntList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
-                list_of_model_scores: FloatList | None = None,
-                num_to_stop: int=20) -> HeuristicFixedLogEntry:
-        last_labels = list_of_labels[-min(len(list_of_labels), num_to_stop):]
+                n_total: int,
+                labels: Labels,
+                num_to_stop: int = 20,
+                is_prioritised: None = None,
+                full_labels: None = None,
+                scores: None = None,
+                bounds: None = None,
+                ) -> LogEntry:
+        """
+        Implements heuristic rule to stop after seeing N excluded records in a row.
+        """
+        last_labels = labels[-min(len(labels), num_to_stop):]
 
-        return HeuristicFixedLogEntry(safe_to_stop=1 not in last_labels,
-                                      num_to_stop=num_to_stop)
+        return LogEntry(KEY=cls.KEY,
+                        safe_to_stop=1 not in last_labels,
+                        num_to_stop=num_to_stop,
+                        confidence_level=None,
+                        score=None,
+                        recall_target=None)

@@ -11,8 +11,8 @@ class LogEntry(_LogEntry, MethodParams):
     pass
 
 
-class RLStop(Method[None, None, None, None]):
-    KEY: str = 'RLStop'
+class GRLStop(Method[None, None, None, None]):
+    KEY: str = 'GRLStop'
 
     @classmethod
     def parameter_options(cls) -> Generator[MethodParams, None, None]:
@@ -59,6 +59,6 @@ if __name__ == '__main__':
     from shared.test import test_method, plots
 
     params = MethodParams()
-    dataset, results = test_method(RLStop, params, 2)
+    dataset, results = test_method(GRLStop, params, 2)
     fig, ax = plots(dataset, results, params)
     fig.show()

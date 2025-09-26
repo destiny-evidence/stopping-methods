@@ -1,40 +1,44 @@
-from typing import Generator, TypedDict
-
-import numpy as np
-import pandas as pd
-from shared.method import AbstractMethod, AbstractLogEntry
-from shared.types import IntList, FloatList
-
-Array = np.ndarray[tuple[int], np.dtype[np.int64]]
+from shared.method import Method, _MethodParams, _LogEntry
+from shared.types import Labels
+from typing import Generator
 
 
-class HeuristicFractionParamSet(TypedDict):
+class MethodParams(_MethodParams):
     fraction: float
 
 
-class HeuristicFractionLogEntry(AbstractLogEntry):
-    KEY: str = 'HEURISTIC_FRAC'
+class LogEntry(_LogEntry, MethodParams):
     num_to_stop: int
-    fraction: float
 
 
-class HeuristicFraction(AbstractMethod):
+class HeuristicFraction(Method[None, None, None, None]):
     KEY: str = 'HEURISTIC_FRAC'
 
-    def parameter_options(self) -> Generator[HeuristicFractionParamSet, None, None]:
+    def parameter_options(self) -> Generator[MethodParams, None, None]:
         for target in [.01, .05, .075, .1, 0.2]:
-            yield HeuristicFractionParamSet(fraction=target)
+            yield MethodParams(fraction=target)
 
     @classmethod
     def compute(cls,
-                dataset_size: int,
-                list_of_labels: IntList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
-                list_of_model_scores: FloatList | None = None,
-                fraction: float = 0.05) -> HeuristicFractionLogEntry:
-        num_to_stop = int(dataset_size * fraction)
-        last_labels = list_of_labels[-min(len(list_of_labels), num_to_stop):]
+                n_total: int,
+                labels: Labels,
+                fraction: float = 0.05,
+                is_prioritised: None = None,
+                full_labels: None = None,
+                scores: None = None,
+                bounds: None = None,
+                ) -> LogEntry:
+        """
+        Implements heuristic rule to stop after seeing N excluded records in a row.
+        In this example, N = fraction * dataset size
+        """
+        num_to_stop = int(n_total * fraction)
+        last_labels = labels[-min(len(labels), num_to_stop):]
 
-        return HeuristicFractionLogEntry(safe_to_stop=1 not in last_labels,
-                                         num_to_stop=num_to_stop,
-                                         fraction=fraction)
+        return LogEntry(KEY=cls.KEY,
+                        safe_to_stop=1 not in last_labels,
+                        num_to_stop=num_to_stop,
+                        fraction=fraction,
+                        confidence_level=None,
+                        score=None,
+                        recall_target=None)

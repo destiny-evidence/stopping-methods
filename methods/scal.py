@@ -1,47 +1,60 @@
-from typing import Generator, TypedDict
-
-import numpy as np
-import pandas as pd
-from shared.method import AbstractMethod, AbstractLogEntry
-from shared.types import IntList, FloatList
+from shared.method import Method, _MethodParams, _LogEntry
+from shared.types import Labels
+from typing import Generator
 
 
-# https://dl.acm.org/doi/abs/10.1145/2983323.2983776
-# via https://github.com/dli1/auto-stop-tar/blob/master/autostop/tar_model/scal.py
-
-class SCALParamSet(TypedDict):
-    todo: float
+class MethodParams(_MethodParams):
+    pass
 
 
-class SCALLogEntry(AbstractLogEntry):
+class LogEntry(_LogEntry, MethodParams):
+    pass
+
+
+class SCAL(Method[None, None, None, None]):
     KEY: str = 'S-CAL'
-    todo: float
-
-
-class SCAL(AbstractMethod):
-    KEY: str = 'S-CAL'
-
-    def parameter_options(self) -> Generator[SCALParamSet, None, None]:
-        for todo in [1.0, 1.1, 1.2]:
-            yield SCALParamSet(todo=todo)
 
     @classmethod
-    def compute(cls,
-                dataset_size: int,
-                list_of_labels: IntList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
-                list_of_model_scores: FloatList | None = None,
-                todo: float = 1.0) -> SCALLogEntry:
+    def parameter_options(cls) -> Generator[MethodParams, None, None]:
+        for batch_size in [500, 1000, 2000]:
+            yield MethodParams(batch_size=batch_size, threshold=threshold)
+
+    @classmethod
+    def compute(
+            cls,
+            n_total: int,
+            labels: Labels,
+            batch_size: int = 1000,
+            threshold: float = 0.1,
+            scores: None = None,
+            is_prioritised: None = None,
+            full_labels: None = None,
+            bounds: None = None,
+    ) -> LogEntry:
+        """
+        Implements S-CAL
+        > Cormack, CIKM 2016. "Scalability of Continuous Active Learning for Reliable High-Recall Text Classification"
+        > via  https://dl.acm.org/doi/abs/10.1145/2983323.2983776
+
+        Reference implementation:
+        https://github.com/dli1/auto-stop-tar/blob/master/autostop/tar_model/scal.py
+        """
+
         # TODO
-        return SCALLogEntry(
+        raise NotImplemented
+        return LogEntry(
+            KEY=cls.KEY,
             safe_to_stop=False,
-            todo=todo,
+            score=1.0,
+            confidence_level=None,
+            recall_target=None,
         )
 
 
 if __name__ == '__main__':
     from shared.test import test_method, plots
 
-    dataset, results = test_method(SCAL, SCALParamSet(todo=1.0), 2)
-    fig, ax = plots(dataset, results)
+    params = MethodParams()
+    dataset, results = test_method(SCAL, params, 2)
+    fig, ax = plots(dataset, results, params)
     fig.show()

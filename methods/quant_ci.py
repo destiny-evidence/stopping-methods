@@ -1,53 +1,52 @@
-import logging
-from typing import Generator, TypedDict
+from typing import Generator
 import numpy as np
-import pandas as pd
-
-from shared.method import AbstractMethod, AbstractLogEntry, RECALL_TARGETS
-from shared.types import IntList, FloatList
-
-logger = logging.getLogger('stop-quant')
-logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
+from shared.method import Method, _MethodParams, _LogEntry, RECALL_TARGETS
+from shared.types import Labels, Scores
 
 
-# This is based on the implementation of the Quant Rule from the paper: Heuristic stopping rules for technology-assisted review (Yang 2021)
-# Implementation taken from class QuantStoppingRule(StoppingRule) in Tarexo framework.
-# https://github.com/eugene-yang/tarexp/blob/main/tarexp/component/stopping.py
-# https://github.com/levnikmyskin/salt/blob/main/baselines/lewis_yang/quant_ci.py
-
-class QuantCIParamSet(TypedDict):
-    recall_target: float
+class MethodParams(_MethodParams):
     nstd: float
-
-
-class QuantCILogEntry(AbstractLogEntry):
-    KEY: str = 'QUANT_CI'
     recall_target: float
-    nstd: float
+
+
+class LogEntry(_LogEntry, MethodParams):
     est_recall: float
-    est_var: float | None = None
+    est_var: float | None
 
 
-class QuantCI(AbstractMethod):
+class QuantCI(Method[Scores, None, None, None]):
     KEY: str = 'QUANT_CI'
-
-    def parameter_options(self) -> Generator[QuantCIParamSet, None, None]:
-        for recall_target in RECALL_TARGETS:
-            # for nstd in [0, 1, 2]:
-            for nstd in [1, 2]:  # n_std == 0 is equivalent to quant/heurisitc_scores!
-                yield QuantCIParamSet(recall_target=recall_target, nstd=nstd)
 
     @classmethod
-    def compute(cls,
-                dataset_size: int,
-                list_of_labels: IntList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
-                list_of_model_scores: FloatList | None = None,
-                recall_target: float = 0.9,
-                nstd: float = 0) -> QuantCILogEntry:
+    def parameter_options(cls) -> Generator[MethodParams, None, None]:
+        for recall_target in RECALL_TARGETS:
+            # for nstd in [0, 1, 2]:
+            for nstd in [1, 2]:  # n_std == 0 is equivalent to quant/heuristic_scores!
+                yield MethodParams(recall_target=recall_target, nstd=nstd)
 
-        scores_all = np.array(list_of_model_scores)
-        labels = np.array(list_of_labels)
+    @classmethod
+    def compute(
+            cls,
+            n_total: int,
+            labels: Labels,
+            scores: Scores,
+            recall_target: float = 0.9,
+            nstd: float = 0,
+            is_prioritised: None = None,
+            full_labels: None = None,
+            bounds: None = None,
+    ) -> LogEntry:
+        """
+        Implements QuantCI
+        > Yang 2021. "Heuristic stopping rules for technology-assisted review"
+        > via  https://dl.acm.org/doi/abs/10.1145/2983323.2983776
+
+        Reference implementations:
+        https://github.com/eugene-yang/tarexp/blob/main/tarexp/component/stopping.py
+        https://github.com/levnikmyskin/salt/blob/main/baselines/lewis_yang/quant_ci.py
+        """
+        scores_all = np.array(scores)
+        labels = np.array(labels)
 
         # mask nans and infs in scores
         mask = np.isfinite(scores_all)
@@ -55,12 +54,16 @@ class QuantCI(AbstractMethod):
         labels = labels[mask[:len(labels)]]
 
         # return early if not enough labels are left
-        if len(list_of_labels) < 50:
-            return QuantCILogEntry(
+        if len(labels) < 50:  # FIXME: Where does the 50 come from?
+            return LogEntry(
+                KEY=cls.KEY,
                 safe_to_stop=False,
                 recall_target=recall_target,
                 nstd=nstd,
-                est_recall=0.0
+                est_recall=0.0,
+                confidence_level=None,
+                score=None,
+                est_var=None,
             )
 
         # calculate probability sums
@@ -71,11 +74,15 @@ class QuantCI(AbstractMethod):
 
         if nstd == 0:
             # this is effectively the QUANT method (without CI)
-            return QuantCILogEntry(
+            return LogEntry(
+                KEY=cls.KEY,
                 safe_to_stop=est_recall >= recall_target,
                 recall_target=recall_target,
                 nstd=nstd,
-                est_recall=float(est_recall)
+                est_recall=float(est_recall),
+                confidence_level=None,
+                score=None,
+                est_var=None,
             )
 
         prod = scores * (1 - scores)
@@ -85,27 +92,34 @@ class QuantCI(AbstractMethod):
                    (1 / (known_ps + unknown_ps) ** 2 * (all_var - unknown_var)))
         safe_to_stop = (est_recall - nstd * np.sqrt(est_var)) >= recall_target
 
-        return QuantCILogEntry(
+        return LogEntry(
+            KEY=cls.KEY,
             safe_to_stop=safe_to_stop,
             recall_target=recall_target,
             nstd=nstd,
             est_recall=float(est_recall),
-            est_var=float(est_var)
+            est_var=float(est_var),
+            confidence_level=None,
+            score=None,
         )
 
 
 if __name__ == '__main__':
     import os
     import sys
+    import logging
     from shared.test import test_method, plots
+
+    logger = logging.getLogger('stop-quant')
+    logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
 
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     bs = 15
-    dataset, results = test_method(QuantCI, QuantCIParamSet(recall_target=0.8, nstd=1),
-                                   dataset_i=4, batch_size=bs)
+    params = MethodParams(recall_target=0.8, nstd=1)
+    dataset, results = test_method(QuantCI, params, dataset_i=4, batch_size=bs)
     est_recalls = np.array([res['est_recall'] for res in results])
 
-    fig, ax = plots(dataset, results)
+    fig, ax = plots(dataset, results, params)
     logger.debug(f'estimated recall: {[res['est_recall'] for res in results]}')
     ax2 = ax.twinx()
     ax2.set_ylim([0, 1])

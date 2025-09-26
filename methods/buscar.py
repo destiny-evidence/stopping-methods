@@ -1,59 +1,62 @@
-from typing import Generator, TypedDict
+from typing import Generator
 
 import numpy as np
 import numpy.typing as npt
-import pandas as pd
 
 from scipy.stats import hypergeom, nchypergeom_wallenius
 
-from shared.method import AbstractMethod, AbstractLogEntry, RECALL_TARGETS, CONFIDENCE_TARGETS
-from shared.types import IntList, FloatList
-
-Array = np.ndarray[tuple[int], np.dtype[np.int64]]
+from shared.method import Method, _MethodParams, _LogEntry, RECALL_TARGETS, CONFIDENCE_TARGETS
+from shared.types import Labels, IntList
 
 
-class BuscarLogEntry(AbstractLogEntry):
-    KEY: str = 'BUSCAR'
-    recall_target: float
+class MethodParams(_MethodParams):
     bias: float
+    recall_target: float
     confidence_level: float
 
 
-class BuscarParamSet(TypedDict):
-    recall_target: float
-    bias: float
-    confidence_level: float
+class LogEntry(_LogEntry, MethodParams):
+    pass
 
 
-class Buscar(AbstractMethod):
+class Buscar(Method[None, None, None, None]):
     KEY: str = 'BUSCAR'
 
-    def parameter_options(self) -> Generator[BuscarParamSet, None, None]:
-        for target in RECALL_TARGETS:
-            for bias in [1., 2., 5., 10.]:
-                for ci in CONFIDENCE_TARGETS:
-                    yield BuscarParamSet(recall_target=target, bias=bias, confidence_level=ci)
+    @classmethod
+    def parameter_options(cls) -> Generator[MethodParams, None, None]:
+        for tr in RECALL_TARGETS:
+            for ci in CONFIDENCE_TARGETS:
+                for bias in [1., 2., 5., 10.]:
+                    yield MethodParams(recall_target=tr, bias=bias, confidence_level=ci)
 
     @classmethod
     def compute(
             cls,
-            dataset_size: int,
-            list_of_labels: IntList,
-            recall_target: float = 0.95,
-            bias: float = 1,
+            n_total: int,
+            labels: Labels,
             confidence_level: float = 0.95,
-            is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
-            list_of_model_scores: FloatList | None = None,
-    ) -> BuscarLogEntry:
-        score = calculate_h0(labels_=list_of_labels,
-                             n_docs=dataset_size,
+            recall_target: float = 0.95,
+            bias: float = 1.0,
+            scores: None = None,
+            is_prioritised: None = None,
+            full_labels: None = None,
+            bounds: None = None,
+    ) -> LogEntry:
+        score = calculate_h0(labels_=labels,
+                             n_docs=n_total,
                              recall_target=recall_target)
 
-        return BuscarLogEntry(safe_to_stop=score is not None and score < 1 - confidence_level,
-                              score=score,
-                              recall_target=recall_target,
-                              bias=bias,
-                              confidence_level=confidence_level)
+        return LogEntry(
+            KEY=cls.KEY,
+            safe_to_stop=score is not None and score < 1 - confidence_level,
+            score=score,
+            confidence_level=confidence_level,
+            recall_target=recall_target,
+            bias=bias
+        )
+
+
+Array = np.ndarray[tuple[int], np.dtype[np.int64]]
 
 
 def calculate_h0(labels_: IntList, n_docs: int, recall_target: float = .95, bias: float = 1.) -> float | None:
@@ -125,16 +128,22 @@ def calculate_h0(labels_: IntList, n_docs: int, recall_target: float = .95, bias
 if __name__ == '__main__':
     from shared.test import test_method, plots
 
-    dataset, results = test_method(Buscar, BuscarParamSet(recall_target=0.95, bias=1.0, confidence_level=0.99), 2)
-    fig, ax = plots(dataset, results)
-    fig.show()
-    dataset, results = test_method(Buscar, BuscarParamSet(recall_target=0.9, bias=1.0, confidence_level=0.99), 2)
-    fig, ax = plots(dataset, results)
+    p = MethodParams(recall_target=0.95, bias=1.0, confidence_level=0.99)
+    dataset, results = test_method(Buscar, p, 2)
+    fig, _ = plots(dataset, results, p)
     fig.show()
 
-    dataset, results = test_method(Buscar, BuscarParamSet(recall_target=0.95, bias=5.0, confidence_level=0.99), 2)
-    fig, ax = plots(dataset, results)
+    p = MethodParams(recall_target=0.9, bias=1.0, confidence_level=0.99)
+    dataset, results = test_method(Buscar, p, 2)
+    fig, _ = plots(dataset, results, p)
     fig.show()
-    dataset, results = test_method(Buscar, BuscarParamSet(recall_target=0.9, bias=5.0, confidence_level=0.99), 2)
-    fig, ax = plots(dataset, results)
+
+    p = MethodParams(recall_target=0.95, bias=5.0, confidence_level=0.99)
+    dataset, results = test_method(Buscar, p, 2)
+    fig, _ = plots(dataset, results, p)
+    fig.show()
+
+    p = MethodParams(recall_target=0.9, bias=5.0, confidence_level=0.99)
+    dataset, results = test_method(Buscar, p, 2)
+    fig, _ = plots(dataset, results, p)
     fig.show()

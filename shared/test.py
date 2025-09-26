@@ -1,19 +1,19 @@
 import logging
-from typing import Type, Any
+from typing import Type
 
 import numpy as np
 
 from shared.dataset import RankedDataset
-from shared.method import AbstractMethod
+from shared.method import Method, _MethodParams, _LogEntry
 from shared.util import elapsed_timer
 from matplotlib import pyplot as plt
 
 
-def test_method(Method: Type[AbstractMethod],
-                paramset: dict[str, Any],
+def test_method(Method: Type[Method],
+                paramset: _MethodParams,
                 dataset_i: int = 0,
                 batch_size: int = 25,
-                loglevel: int | str = logging.DEBUG) -> tuple[RankedDataset, list[dict[str, Any]]]:
+                loglevel: int | str = logging.DEBUG) -> tuple[RankedDataset, list[_LogEntry]]:
     from shared.config import settings
     from shared.dataset import RankedDataset
     import logging
@@ -23,14 +23,11 @@ def test_method(Method: Type[AbstractMethod],
 
     fp = list(settings.ranking_data_path.glob('*.json'))[dataset_i]
     dataset = RankedDataset(ranking_info_fp=fp)
-    method = Method(dataset)
     logger.info(f'Ranking from: {fp}')
     logger.info(dataset)
 
     results = []
-    for batch_i, (batches, labels, scores, is_prioritised) in enumerate(
-            dataset.it_cum_batches(batch_size=batch_size)
-    ):
+    for batch_i, (_, bounds, (labels, scores, is_prioritised)) in enumerate(dataset.cum_batches(batch_size=batch_size)):
         base_entry = {
             'batch_i': batch_i,
             'n_total': dataset.n_total,
@@ -41,18 +38,20 @@ def test_method(Method: Type[AbstractMethod],
             'n_incl_batch': labels[-batch_size:].sum(),
             'n_records_batch': batch_size,
         }
-        with elapsed_timer(logger, f'Batch {batch_i} took {method.KEY}'):
-            results.append(base_entry | method.compute(
-                dataset_size=dataset.n_total,
-                list_of_labels=labels,
-                list_of_model_scores=scores,
+        with elapsed_timer(logger, f'Batch {batch_i} took {Method.KEY}'):
+            results.append(base_entry | Method.compute(
+                n_total = dataset.n_total,
+                labels=labels,
+                scores=scores,
+                full_labels=dataset.labels,
+                bounds=bounds,
                 is_prioritised=is_prioritised,
-                **paramset).model_dump())
+                **paramset))
             logger.debug(f'  -> {results[-1]}')
     return dataset, results
 
 
-def plots(dataset: RankedDataset, results: list[dict[str, Any]], params: dict[str, Any]) -> tuple[plt.Figure, plt.Axes]:
+def plots(dataset: RankedDataset, results: list[_LogEntry], params: _MethodParams) -> tuple[plt.Figure, plt.Axes]:
     fig, ax = plt.subplots(layout='constrained', dpi=150, figsize=(12, 10))
     labels = dataset.ranking['label']
     rand = dataset.ranking.reset_index(drop=True)['random'] == True

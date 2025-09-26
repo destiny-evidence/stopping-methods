@@ -1,47 +1,59 @@
-from typing import Generator, TypedDict
-
-import numpy as np
-import pandas as pd
-from shared.method import AbstractMethod, AbstractLogEntry
-from shared.types import IntList, FloatList
+from shared.method import Method, _MethodParams, _LogEntry
+from shared.types import Labels
+from typing import Generator
 
 
-# https://github.com/elevatelaw/ICAIL2023_confidence_sequences
-# via https://dl.acm.org/doi/abs/10.1145/3594536.3595167
-
-class ConfSeqParamSet(TypedDict):
-    todo: float
+class MethodParams(_MethodParams):
+    pass
 
 
-class ConfSeqLogEntry(AbstractLogEntry):
+class LogEntry(_LogEntry, MethodParams):
+    pass
+
+
+class ConfSeq(Method[None, None, None, None]):
     KEY: str = 'CONF'
-    todo: float
-
-
-class ConfSeq(AbstractMethod):
-    KEY: str = 'CONF'
-
-    def parameter_options(self) -> Generator[ConfSeqParamSet, None, None]:
-        for todo in [1.0, 1.1, 1.2]:
-            yield ConfSeqParamSet(todo=todo)
 
     @classmethod
-    def compute(cls,
-                dataset_size: int,
-                list_of_labels: IntList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
-                list_of_model_scores: FloatList | None = None,
-                todo: float = 1.0) -> ConfSeqLogEntry:
+    def parameter_options(cls) -> Generator[MethodParams, None, None]:
+        for batch_size in [500, 1000, 2000]:
+            yield MethodParams(batch_size=batch_size, threshold=threshold)
+
+    @classmethod
+    def compute(
+            cls,
+            n_total: int,
+            labels: Labels,
+            batch_size: int = 1000,
+            threshold: float = 0.1,
+            scores: None = None,
+            is_prioritised: None = None,
+            full_labels: None = None,
+            bounds: None = None,
+    ) -> LogEntry:
+        """
+        Implements confidence sequence rule
+        > Lewis et al., ICAIL'23. "Confidence Sequences for Evaluating One-Phase Technology-Assisted Review"
+        > via https://dl.acm.org/doi/abs/10.1145/3594536.3595167
+
+        Reference implementation:
+        https://github.com/elevatelaw/ICAIL2023_confidence_sequences
+        """
         # TODO
-        return ConfSeqLogEntry(
+        raise NotImplemented
+        return LogEntry(
+            KEY=cls.KEY,
             safe_to_stop=False,
-            todo=todo,
+            score=1.0,
+            confidence_level=None,
+            recall_target=None,
         )
 
 
 if __name__ == '__main__':
     from shared.test import test_method, plots
 
-    dataset, results = test_method(ConfSeq, ConfSeqParamSet(todo=1.0), 2)
-    fig, ax = plots(dataset, results)
+    params = MethodParams()
+    dataset, results = test_method(ConfSeq, params, 2)
+    fig, ax = plots(dataset, results, params)
     fig.show()

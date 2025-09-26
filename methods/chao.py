@@ -5,7 +5,7 @@ from typing import Generator, TypedDict
 import numpy as np
 import pandas as pd
 
-from shared.method import AbstractMethod, AbstractLogEntry, RECALL_TARGETS
+from shared.method import Method, AbstractLogEntry, RECALL_TARGETS
 from shared.types import IntList, FloatList
 
 class HeuristicScoresParamSet(TypedDict):
@@ -21,7 +21,7 @@ class HeuristicScoresLogEntry(AbstractLogEntry):
     est_recall: float
 
 
-class Chao(AbstractMethod):
+class Chao(Method):
     KEY: str = 'CHAO'
 
     def parameter_options(self) -> Generator[HeuristicScoresParamSet, None, None]:

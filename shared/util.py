@@ -15,7 +15,7 @@ from httpx._types import (
     RequestContent, RequestData, RequestFiles, QueryParamTypes, HeaderTypes, CookieTypes,
     AuthTypes, TimeoutTypes, RequestExtensions
 )
-from shared.method import AbstractMethod
+from shared.method import Method
 
 T = TypeVar('T')
 
