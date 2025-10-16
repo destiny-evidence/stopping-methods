@@ -10,7 +10,7 @@ import typer
 
 from shared.config import settings
 from shared.dataset import RankedDataset
-from methods import it_methods, get_methods
+from methods import it_methods
 from shared.util import elapsed_timer
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s] %(name)s: %(message)s', level=logging.DEBUG)
@@ -31,7 +31,7 @@ def slurm(
 ) -> None:
     logger.info(f'Preparing slurm script and submitting job!')
 
-    stop_methods = list(get_methods(methods=methods))
+    stop_methods = list(it_methods(methods=methods))
     method_keys = [sm.KEY for sm in stop_methods]
 
     results_path = settings.result_data_path / results_dir
