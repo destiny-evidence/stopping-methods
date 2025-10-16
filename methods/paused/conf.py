@@ -1,3 +1,6 @@
+import numpy as np
+from scipy.stats import betabinom
+
 from shared.method import Method, _MethodParams, _LogEntry
 from shared.types import Labels
 from typing import Generator
@@ -24,8 +27,6 @@ class ConfSeq(Method[None, None, None, None]):
             cls,
             n_total: int,
             labels: Labels,
-            batch_size: int = 1000,
-            threshold: float = 0.1,
             scores: None = None,
             is_prioritised: None = None,
             full_labels: None = None,
@@ -38,8 +39,34 @@ class ConfSeq(Method[None, None, None, None]):
 
         Reference implementation:
         https://github.com/elevatelaw/ICAIL2023_confidence_sequences
+        -> implementation broken!
+           see https://github.com/elevatelaw/ICAIL2023_confidence_sequences/issues
+
         """
-        # TODO
+        n_seen = len(labels)  # M
+        n_seen_incl = sum(labels)#M+
+        n_seen_excl = n_seen - n_seen_incl#M-
+
+        prior_a = 1/99
+        prior_b = 1
+        prior_dist = betabinom(n_seen, prior_a, prior_b)
+
+        n_unseen = n_total-n_seen
+        posterior_a = prior_a + n_seen_incl
+        posterior_b = prior_b + n_seen_excl
+        posterior_dist = betabinom(n_unseen, posterior_a, posterior_b)
+
+        est_incl_min = n_seen_incl#Nplus_min
+        est_incl_max = n_total - n_seen_excl#Nplus_max
+        est_incl_range = np.arange(est_incl_min, est_incl_max + 1)
+
+        priors = np.array([prior_dist.pmf(n) for n in est_incl_range])
+        posteriors = np.array([prior_dist.pmf(n) for n in est_incl_range])
+        confidence_intervals = est_incl_range[priors < (20*posteriors)]
+
+        est_min = confidence_intervals.min()
+        est_max = confidence_intervals.max()
+
         raise NotImplemented
         return LogEntry(
             KEY=cls.KEY,
@@ -48,6 +75,7 @@ class ConfSeq(Method[None, None, None, None]):
             confidence_level=None,
             recall_target=None,
         )
+
 
 
 if __name__ == '__main__':

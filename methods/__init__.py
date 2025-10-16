@@ -15,11 +15,8 @@ from .method2399 import Method2399
 from .quant_ci import QuantCI
 from .tm_qbcb import TargetQBCB
 from .ipp import PointProcess
-
-# from .conf import ConfSeq
-# from .scal import SCAL
-# from .rlstop import RLStop
-# from .chao import Chao
+from .salt import SALT
+from .scal import SCAL
 
 __all__ = [
     'Apriori',
@@ -35,12 +32,8 @@ __all__ = [
     'QuantCI',
     'TargetQBCB',
     'PointProcess',
-    # 'ConfSeq',
-    # 'SCAL',
-    # 'RLStop',
-    # 'GRLStop',
-    # 'Chao',
-    # 'SALT',
+    'SALT',
+    'SCAL',
 ]
 
 

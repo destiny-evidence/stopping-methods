@@ -36,12 +36,8 @@ class RLStop(Method[None, None, None, None]):
         > Bin-Hezam and Stevenson, SIGIR 2024. "RLStop: A Reinforcement Learning Stopping Method for TAR"
         > via https://doi.org/10.1145/3626772.3657911
 
-        > Bin-Hezam and Stevenson, SIGIR 2025. "A generalised and adaptable reinforcement learning stopping method"
-        > via https://doi.org/10.1145/3726302.3729879
-
         Reference implementation:
         https://github.com/ReemBinHezam/RLStop
-        https://github.com/ReemBinHezam/GRLStop
         """
 
         # TODO

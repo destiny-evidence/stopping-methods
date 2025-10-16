@@ -176,3 +176,5 @@ cython_debug/
 *.jpg
 
 rank.slurm
+
+paper/
