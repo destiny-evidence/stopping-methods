@@ -156,6 +156,7 @@ def compute_stops(
                 with elapsed_timer(logger, f'Evaluating method {method.KEY}'):
                     for paramset in method.parameter_options():
                         stop_result = method.compute(
+                            n_total=dataset.n_total,
                             labels=labels,
                             scores=scores,
                             is_prioritised=is_prioritised,
