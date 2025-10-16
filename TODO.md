@@ -1,3 +1,15 @@
+# Missing stopping methods
+The following methods are not (yet) implemented because they require additional information the framework currently does not provide.
+In particular, they require model ranking scores at each iteration before and after retraining.
+Other methods have complex or wrong reference implementations and are therefore not included yet.
+
+* S-CAL
+* RLStop
+* GRLStop
+* Autotar
+* Chao
+* Confidence sequences
+
 # Hackathon and beyond todo list
 
 ## Dataset tasks
