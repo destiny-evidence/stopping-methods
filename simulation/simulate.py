@@ -124,10 +124,10 @@ def compute_stops(
         logger.info(f'({file_i + 1} / {len(info_files)}) Ranking from: {ranking_fp}')
         logger.debug(f'Info from {ranking_info_fp}')
 
-        for batch_i, (batches, labels, scores, is_prioritised) in enumerate(
-                dataset.it_cum_batches(batch_size=batch_size)
+        for batch_i, (_, bounds, (labels, scores, is_prioritised)) in enumerate(
+                dataset.cum_batches(batch_size=batch_size)
         ):
-            logger.info(f'Running batch {batch_i} ({len(batches):,}/{dataset.n_total:,})')
+            logger.info(f'Running batch {batch_i} ({len(labels):,}/{dataset.n_total:,})')
             base_entry = {
                 'dataset': dataset.dataset,
                 'sim-rep': dataset.repeat,
@@ -152,24 +152,29 @@ def compute_stops(
                 }
             }
 
-            for method in it_methods(dataset=dataset, methods=methods):
+            for method in it_methods(methods=methods):
                 with elapsed_timer(logger, f'Evaluating method {method.KEY}'):
                     for paramset in method.parameter_options():
-                        stop_result = method.compute_(
-                            list_of_labels=labels,
-                            list_of_model_scores=scores,
+                        stop_result = method.compute(
+                            labels=labels,
+                            scores=scores,
                             is_prioritised=is_prioritised,
+                            bounds=bounds,
+                            # typically not used, just for target method that need complete knowledge (which makes no sense)
+                            full_labels=dataset.labels,
+
+                            # method parameters
                             **paramset)
 
                         rows.append({
                             **base_entry,
                             'method': method.KEY,
-                            'safe_to_stop': stop_result.safe_to_stop,
+                            'safe_to_stop': stop_result['safe_to_stop'],
                             'method-hash': (method.KEY + '-' +
                                             sha1(json.dumps(paramset, sort_keys=True).encode('utf-8')).hexdigest()),
                             **{
                                 f'method-{k}': v
-                                for k, v in stop_result.model_dump().items()
+                                for k, v in stop_result.items()
                             },
                         })
 
