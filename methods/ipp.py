@@ -37,7 +37,7 @@ class PointProcess(Method[None, None, None, None]):
             n_total: int,
             labels: Labels,
             n_windows: int = 10,
-            target_recall: float = 0.95,
+            recall_target: float = 0.95,
             confidence_level: float = 0.95,
             scores: None = None,
             is_prioritised: None = None,
@@ -88,18 +88,18 @@ class PointProcess(Method[None, None, None, None]):
             est_incl_seen = round(np.sum(est_incl_likelihood))
             # est_incl_seen: 9
 
-            if n_incl_seen >= target_recall * est_incl_seen:
+            if n_incl_seen >= recall_target * est_incl_seen:
                 mu = (a / (k + 1)) * (n_total ** (k + 1) - 1)
                 est_incl = np.argmin(poisson.cdf(np.arange(n_total) + 1, mu) < confidence_level) + 1
                 # mu = 26.05102
                 # est_incl = 35
                 return LogEntry(
                     KEY=cls.KEY,
-                    safe_to_stop=(target_recall * est_incl) <= n_incl_seen,
+                    safe_to_stop=(recall_target * est_incl) <= n_incl_seen,
                     n_windows=n_windows,
                     confidence_level=confidence_level,
-                    recall_target=target_recall,
-                    score=n_incl_seen / (target_recall * est_incl),
+                    recall_target=recall_target,
+                    score=n_incl_seen / (recall_target * est_incl),
                     est_incl=est_incl,
                 )
         except:
@@ -110,7 +110,7 @@ class PointProcess(Method[None, None, None, None]):
             safe_to_stop=False,
             n_windows=n_windows,
             confidence_level=confidence_level,
-            recall_target=target_recall,
+            recall_target=recall_target,
             est_incl=None,
             score=None,
         )
