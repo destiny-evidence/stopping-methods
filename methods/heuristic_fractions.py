@@ -14,7 +14,8 @@ class LogEntry(_LogEntry, MethodParams):
 class HeuristicFraction(Method[None, None, None, None]):
     KEY: str = 'HEURISTIC_FRAC'
 
-    def parameter_options(self) -> Generator[MethodParams, None, None]:
+    @classmethod
+    def parameter_options(cls)  -> Generator[MethodParams, None, None]:
         for target in [.01, .05, .075, .1, 0.2]:
             yield MethodParams(fraction=target)
 

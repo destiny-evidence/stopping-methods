@@ -25,7 +25,8 @@ class LogEntry(_LogEntry, MethodParams):
 class CurveFitting(Method[None, None, None, None]):
     KEY: str = 'CURVE_FITTING'
 
-    def parameter_options(self) -> Generator[MethodParams, None, None]:
+    @classmethod
+    def parameter_options(cls) -> Generator[MethodParams, None, None]:
         for target in RECALL_TARGETS:
             for nw in NUM_WINDOWS:
                 for conf in CONFIDENCE_TARGETS:

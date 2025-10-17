@@ -24,7 +24,8 @@ def model_func_power(x, a, k):
 class PointProcess(Method[None, None, None, None]):
     KEY: str = 'IPP'
 
-    def parameter_options(self) -> Generator[MethodParams, None, None]:
+    @classmethod
+    def parameter_options(cls)  -> Generator[MethodParams, None, None]:
         for nw in NUM_WINDOWS:
             for cl in CONFIDENCE_TARGETS:
                 for tr in RECALL_TARGETS:

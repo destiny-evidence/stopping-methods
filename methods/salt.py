@@ -25,7 +25,8 @@ class LogEntry(_LogEntry, MethodParams):
 class SALT(Method[Scores, None, Bounds, None]):
     KEY: str = 'SALτ'
 
-    def parameter_options(self) -> Generator[MethodParams, None, None]:
+    @classmethod
+    def parameter_options(cls)  -> Generator[MethodParams, None, None]:
         for cl in CONFIDENCE_TARGETS:
             for tr in RECALL_TARGETS:
                 for alpha in [0.1, 0.3, 0.5, 0.8, 1.0]:

@@ -14,7 +14,8 @@ class LogEntry(_LogEntry, MethodParams):
 class HeuristicFixed(Method[None, None, None, None]):
     KEY: str = 'HEURISTIC_FIX'
 
-    def parameter_options(self) -> Generator[MethodParams, None, None]:
+    @classmethod
+    def parameter_options(cls)  -> Generator[MethodParams, None, None]:
         for target in [50, 100, 200, 300]:
             yield MethodParams(num_to_stop=target)
 
