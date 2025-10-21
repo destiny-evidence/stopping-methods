@@ -57,6 +57,8 @@ pip install -r requirements.txt
                                 --dyn-min-batch-size 25 --dyn-max-batch-size 200 --dyn-min-batch-incl 2 \
                                 --num-random-init 500 --min-dataset-size 1000 --num-repeats 3 \
                                 --min-inclusion-rate 0.01 --tuning-interval 4 --store-feather --slurm-user "???@pik-potsdam.de" --slurm-hours 23
+                                
+
 ```
 
 ## Pre-computing rankings
@@ -130,6 +132,9 @@ export PYTHONPATH=$PYTHONPATH:. && python simulation/simulate.py slurm --slurm-u
 squeue --me -t all
 # clearing
 rm  data/results/simulation-*
+
+# transfer results
+rsync -avh --progress -e ssh foote:/p/tmp/timrepke/stopping-methods/data/results data/
 ```
 
 Options:

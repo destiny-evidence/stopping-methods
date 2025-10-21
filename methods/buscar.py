@@ -42,9 +42,12 @@ class Buscar(Method[None, None, None, None]):
             full_labels: None = None,
             bounds: None = None,
     ) -> LogEntry:
-        score = calculate_h0(labels_=labels,
-                             n_docs=n_total,
-                             recall_target=recall_target)
+        score = calculate_h0(
+            labels_=labels,
+            n_docs=n_total,
+            recall_target=recall_target,
+            bias=bias,
+        )
 
         return LogEntry(
             KEY=cls.KEY,
