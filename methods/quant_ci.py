@@ -20,8 +20,7 @@ class QuantCI(Method[Scores, None, None, None]):
     @classmethod
     def parameter_options(cls) -> Generator[MethodParams, None, None]:
         for recall_target in RECALL_TARGETS:
-            # for nstd in [0, 1, 2]:
-            for nstd in [1, 2]:  # n_std == 0 is equivalent to quant/heuristic_scores!
+            for nstd in [0, 1, 2]:  # n_std == 0 is equivalent to quant/heuristic_scores!
                 yield MethodParams(recall_target=recall_target, nstd=nstd)
 
     @classmethod

@@ -26,7 +26,7 @@ class Buscar(Method[None, None, None, None]):
     def parameter_options(cls) -> Generator[MethodParams, None, None]:
         for tr in RECALL_TARGETS:
             for ci in CONFIDENCE_TARGETS:
-                for bias in [1., 2., 5., 10.]:
+                for bias in [1., 2., 5., 10.]:  # NOTE: any bias != 1 is not CMH and does not work yet!
                     yield MethodParams(recall_target=tr, bias=bias, confidence_level=ci)
 
     @classmethod

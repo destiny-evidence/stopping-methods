@@ -127,7 +127,7 @@ export PYTHONPATH=$PYTHONPATH:/path/to/stopping-methods && python simulation/mai
 
 
 # via slurm
-export PYTHONPATH=$PYTHONPATH:. && python simulation/simulate.py slurm --slurm-user=name@pik-potsdam.de --batch-size=15 --slurm-hours=12
+export PYTHONPATH=$PYTHONPATH:. && python simulation/simulate.py slurm --slurm-user=timrepke@pik-potsdam.de --batch-size=15 --slurm-hours=12
 # check status
 squeue --me -t all
 # clearing
@@ -135,6 +135,7 @@ rm  data/results/simulation-*
 
 # transfer results
 rsync -avh --progress -e ssh foote:/p/tmp/timrepke/stopping-methods/data/results data/
+rsync -avh --progress -e ssh data/ rept@srv-mcc-apsis-rechner:/home/rept/workspace/stopping-methods/data
 ```
 
 Options:
