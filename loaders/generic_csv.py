@@ -28,7 +28,7 @@ class GenericCollection(AbstractCollection):
 
 def read_file(file_path: Path, key: str) -> Dataset:
     df = pd.read_csv(file_path).fillna('')
-    df = df[((df['label_abs'] == 0) | (df['label_abs'] == 0)) & df['abstract'].str.len() > 0]
+    df = df[((df['label_abs'] == 0) | (df['label_abs'] == 1)) & df['abstract'].str.len() > 0]
 
     return Dataset(
         key=key,

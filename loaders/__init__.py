@@ -18,11 +18,11 @@ logger = logging.getLogger('loaders')
 
 
 __all__ = [
-    'CLEFCollection',
-    'SIGIRCollection',
     'GenericCollectionCSV',
     'GenericCollectionJSON',
     'GenericPairedRISCollection',
+    'CLEFCollection',
+    'SIGIRCollection',
     # 'SynergyDataset',
 ]
 
