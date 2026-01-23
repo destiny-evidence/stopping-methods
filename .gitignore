@@ -178,3 +178,5 @@ cython_debug/
 rank.slurm
 
 paper/
+
+uv.lock
