@@ -31,16 +31,16 @@ class TargetQBCB(Method[None, Labels, None, None]):
 
     @classmethod
     def compute(
-            cls,
-            n_total: int,  # Total number of records in datasets (seen + unseen)
-            labels: Labels,
-            full_labels: Labels,
-            positive_sample_size: int = 50,
-            confidence_level: float = 0.95,
-            recall_target: float = 0.95,
-            scores: None = None,
-            is_prioritised: None = None,
-            bounds: None = None,
+        cls,
+        n_total: int,  # Total number of records in datasets (seen + unseen)
+        labels: Labels,
+        full_labels: Labels,
+        positive_sample_size: int = 50,
+        confidence_level: float = 0.95,
+        recall_target: float = 0.95,
+        scores: None = None,
+        is_prioritised: None = None,
+        bounds: None = None,
     ) -> LogEntry:
         """
         Implements target method with quantile binomial confidence bound
@@ -48,7 +48,7 @@ class TargetQBCB(Method[None, Labels, None, None]):
         > via https://dl.acm.org/doi/pdf/10.1145/3726302.3729879
         > via https://doi.org/10.1145/3459637.3482415
         > via https://arxiv.org/pdf/2108.12746
-        
+
         Reference implementation
         https://github.com/levnikmyskin/salt/blob/main/baselines/lewis_yang/qbcb.py
         """
@@ -61,10 +61,17 @@ class TargetQBCB(Method[None, Labels, None, None]):
 
         # Not enough data to meet the minimum size
         if n_total_incl < positive_sample_size:
-            return LogEntry(KEY=cls.KEY,
-                            safe_to_stop=False, recall_target=recall_target, n_sample=n_total,
-                            confidence_level=confidence_level, positive_sample_size=positive_sample_size,
-                            n_overlap=None, required_overlap=None, score=None)
+            return LogEntry(
+                KEY=cls.KEY,
+                safe_to_stop=False,
+                recall_target=recall_target,
+                n_sample=n_total,
+                confidence_level=confidence_level,
+                positive_sample_size=positive_sample_size,
+                n_overlap=None,
+                required_overlap=None,
+                score=None,
+            )
 
         idxs_seen = np.arange(n_seen)
         idxs_sample = np.arange(n_total)

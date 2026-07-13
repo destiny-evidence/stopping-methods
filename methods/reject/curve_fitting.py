@@ -35,20 +35,19 @@ class CurveFitting(AbstractMethod):
         for target in RECALL_TARGETS:
             yield CurveFittingParamSet(recall_target=target, curve='exp')
 
-    def compute(self,
-                list_of_labels: IntList,
-                list_of_model_scores: FloatList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
-                recall_target: float = 0.95,
-                curve: str = 'exp') -> CurveFittingLogEntry:
+    def compute(
+        self,
+        list_of_labels: IntList,
+        list_of_model_scores: FloatList,
+        is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
+        recall_target: float = 0.95,
+        curve: str = 'exp',
+    ) -> CurveFittingLogEntry:
         labels = np.array(list_of_labels)
 
         # Fit the exponential curve and keep first parameter, which can be interpreted as
         # first one usually is the number of predicted includes
-        params, _ = curve_fit(functions[curve],
-                              np.arange(len(list_of_labels)),
-                              labels.cumsum(),
-                              maxfev=1000)
+        params, _ = curve_fit(functions[curve], np.arange(len(list_of_labels)), labels.cumsum(), maxfev=1000)
         a = params[0]
         n_seen_includes = labels.sum()  # the number of included records within seen data
         # Rescale the difference between number seen and number expected includes
@@ -58,9 +57,11 @@ class CurveFitting(AbstractMethod):
         # Alternative definition is to always normalise by expected includes
         # score = abs(a - labels.sum()) / a
 
-        return CurveFittingLogEntry(safe_to_stop=score is not None and score < 1 - recall_target,
-                                    expected_includes=a,
-                                    est_recall=pred_recall,
-                                    score=score,
-                                    expected_remaining=int(abs(a - labels.sum())),
-                                    recall_target=recall_target)
+        return CurveFittingLogEntry(
+            safe_to_stop=score is not None and score < 1 - recall_target,
+            expected_includes=a,
+            est_recall=pred_recall,
+            score=score,
+            expected_remaining=int(abs(a - labels.sum())),
+            recall_target=recall_target,
+        )

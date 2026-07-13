@@ -22,9 +22,7 @@ class SynergyDataset(AbstractCollection):
         for file in files:
             records = list(read_dataset(file))
             yield Dataset(
-                key=f'synergy-{file.stem}',
-                labels=[rec.label_abs for rec in records],
-                texts=[(rec.title or '') + ' ' + (rec.abstract or '') for rec in records]
+                key=f'synergy-{file.stem}', labels=[rec.label_abs for rec in records], texts=[(rec.title or '') + ' ' + (rec.abstract or '') for rec in records]
             )
 
     def prepare_datasets(self) -> None:
@@ -32,8 +30,7 @@ class SynergyDataset(AbstractCollection):
 
     def fetch_collection(self):
         logger.info('Fetching Synergy collection index')
-        index = httpx.get(
-            'https://raw.githubusercontent.com/asreview/synergy-dataset/refs/heads/master/index.json').json()
+        index = httpx.get('https://raw.githubusercontent.com/asreview/synergy-dataset/refs/heads/master/index.json').json()
 
         # Ensure target folder exists
         self.raw_folder.mkdir(parents=True, exist_ok=True)
@@ -66,10 +63,13 @@ def read_dataset(path: Path) -> Generator[Record, None, None]:
                 label_abs=safe_get(obj, 'label_included'),
             )
 
-def safe_str(val: int|None) -> str|None:
+
+def safe_str(val: int | None) -> str | None:
     if val is None:
         return None
     return str(val)
+
+
 def safe_get(obj: dict[str, Any], field: str) -> str | int | bool | None:
     if field not in obj or pd.isnull(obj[field]):
         return None
@@ -86,13 +86,10 @@ def populate_ids(dataset: pd.DataFrame) -> Generator[dict[str, Any], None, None]
             logger.warning(f'Skipping row {idx} with missing oa_id')
             continue
         try:
-            work = httpx.get(f'{row['openalex_id']}?select={fields}').json()
-            yield {
-                **row.to_dict(),
-                'openalex': work
-            }
+            work = httpx.get(f'{row["openalex_id"]}?select={fields}').json()
+            yield {**row.to_dict(), 'openalex': work}
         except Exception as e:
-            logger.warning(f'Failed to fetch for row {idx} at {row['openalex_id']}')
+            logger.warning(f'Failed to fetch for row {idx} at {row["openalex_id"]}')
             logger.exception(e)
 
 
@@ -146,5 +143,5 @@ FIELDS_TO_FETCH = [
     # 'cited_by_api_url',
     # 'counts_by_year',
     'updated_date',
-    'created_date'
+    'created_date',
 ]

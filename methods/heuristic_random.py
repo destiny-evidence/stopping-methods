@@ -21,16 +21,16 @@ class HeuristicRandom(Method[None, None, None, Sampling]):
 
     @classmethod
     def compute(
-            cls,
-            n_total: int,
-            labels: Labels,
-            is_prioritised: Sampling,
-            batch_size: int = 1000,
-            threshold: float = 0.1,
-            full_labels: None = None,
-            bounds: None = None,
-            scores: None = None,
-            recall_target: float = 0.95,
+        cls,
+        n_total: int,
+        labels: Labels,
+        is_prioritised: Sampling,
+        batch_size: int = 1000,
+        threshold: float = 0.1,
+        full_labels: None = None,
+        bounds: None = None,
+        scores: None = None,
+        recall_target: float = 0.95,
     ) -> LogEntry:
         """
         Use inclusion rate during random sample to extrapolate overall number of included records.

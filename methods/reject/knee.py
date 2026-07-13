@@ -33,28 +33,30 @@ class Knee(AbstractMethod):
                 for nw in [10, 100, 1000]:
                     yield KneeParamSet(window_size=ws, s=s, n_windows=nw)
 
-    def compute(self,
-                list_of_labels: IntList,
-                list_of_model_scores: FloatList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
-                window_size: int,
-                s: int,
-                n_windows: int) -> KneeLogEntry:
+    def compute(
+        self,
+        list_of_labels: IntList,
+        list_of_model_scores: FloatList,
+        is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray,
+        window_size: int,
+        s: int,
+        n_windows: int,
+    ) -> KneeLogEntry:
         """
-           Detect the so-called knee in the data.
+        Detect the so-called knee in the data.
 
-           The implementation is based on paper [1] and code here (https://github.com/jagandecapri/kneedle).
-           via https://github.com/dli1/auto-stop-tar/blob/master/autostop/tar_model/knee.py
+        The implementation is based on paper [1] and code here (https://github.com/jagandecapri/kneedle).
+        via https://github.com/dli1/auto-stop-tar/blob/master/autostop/tar_model/knee.py
 
-           // @param data: The 2d data to find a knee in.
-           @param window_size: The data is smoothed using Gaussian kernel average smoother, this parameter is the
-                               window used for averaging (higher values mean more smoothing, try 3 to begin with).
-           @param s: How many "flat" points to require before we consider it a knee.
-           @param batch_scale: proportional batch size; originally not in the implementation, but we give it the
-                               full list of all annotations and the algorithm benefits from a more coarse resolution.
-                               0.05 seems to be a reasonable factor
-           @return: The knee values.
-           """
+        // @param data: The 2d data to find a knee in.
+        @param window_size: The data is smoothed using Gaussian kernel average smoother, this parameter is the
+                            window used for averaging (higher values mean more smoothing, try 3 to begin with).
+        @param s: How many "flat" points to require before we consider it a knee.
+        @param batch_scale: proportional batch size; originally not in the implementation, but we give it the
+                            full list of all annotations and the algorithm benefits from a more coarse resolution.
+                            0.05 seems to be a reasonable factor
+        @return: The knee values.
+        """
         batch_size = max(1, int(self.dataset.n_total / n_windows))
 
         labels = np.array(list_of_labels)
@@ -62,18 +64,15 @@ class Knee(AbstractMethod):
         # normalise x to fraction of dataset total and normalise y to (0, 1)
 
         if labels.sum() == 0:
-            return KneeLogEntry(safe_to_stop=False,
-                                s=s, n_windows=n_windows, window_size=window_size)
+            return KneeLogEntry(safe_to_stop=False, s=s, n_windows=n_windows, window_size=window_size)
 
-        data = np.array([np.arange(len(list_of_labels)) / self.dataset.n_total,
-                         labels.cumsum() / labels.sum()]).T
+        data = np.array([np.arange(len(list_of_labels)) / self.dataset.n_total, labels.cumsum() / labels.sum()]).T
         # Create fake batches and select only every Nth entry from the curve
         data = data[::batch_size]
         n_windows = len(data)
 
         if n_windows < 2:
-            return KneeLogEntry(safe_to_stop=False,
-                                s=s, n_windows=n_windows, window_size=window_size)
+            return KneeLogEntry(safe_to_stop=False, s=s, n_windows=n_windows, window_size=window_size)
 
         # smooth
         smoothed_data = []
@@ -112,11 +111,7 @@ class Knee(AbstractMethod):
         # find indices for local maximums
         candidate_indices = []
         for i in range(1, n_windows - 1):
-            if (
-                    differed_data[i][1] > differed_data[i - 1][1]
-                    and
-                    differed_data[i][1] > differed_data[i + 1][1]
-            ):
+            if differed_data[i][1] > differed_data[i - 1][1] and differed_data[i][1] > differed_data[i + 1][1]:
                 candidate_indices.append(i)
 
         # threshold
@@ -137,9 +132,10 @@ class Knee(AbstractMethod):
                     knee_indices.append(candidate_index)
                     break
 
-        return KneeLogEntry(safe_to_stop=len(knee_indices) > 0,
-                            s=s, n_windows=n_windows, window_size=window_size,
-                            knees=[ki * batch_size for ki in knee_indices])
+        return KneeLogEntry(
+            safe_to_stop=len(knee_indices) > 0, s=s, n_windows=n_windows, window_size=window_size, knees=[ki * batch_size for ki in knee_indices]
+        )
+
 
 # def alison_knee():
 #     # https://github.com/alisonsneyd/poisson_stopping_method/blob/master/run_stopping_point_algorithms.py

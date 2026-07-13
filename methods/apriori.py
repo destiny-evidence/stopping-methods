@@ -25,19 +25,19 @@ class Apriori(Method[Scores, None, None, None]):
 
     @classmethod
     def compute(
-            cls,
-            n_total: int,  # Total number of records in datasets (seen + unseen)
-            labels: Labels,
-            scores: Scores,
-            recall_target: float = 0.95,
-            inclusion_threshold: float = 0.5,
-            is_prioritised: None = None,
-            full_labels: None = None,
-            bounds: None = None,
+        cls,
+        n_total: int,  # Total number of records in datasets (seen + unseen)
+        labels: Labels,
+        scores: Scores,
+        recall_target: float = 0.95,
+        inclusion_threshold: float = 0.5,
+        is_prioritised: None = None,
+        full_labels: None = None,
+        bounds: None = None,
     ) -> LogEntry:
 
         # inspired by https://github.com/mpbron/allib/blob/stable/allib/stopcriterion/apriori.py#L18
-        y_pred = scores[:len(labels)] >= inclusion_threshold
+        y_pred = scores[: len(labels)] >= inclusion_threshold
         y_true = labels == 1
 
         recall = recall_score(y_true, y_pred, zero_division=0)

@@ -21,15 +21,15 @@ class GRLStop(Method[None, None, None, None]):
 
     @classmethod
     def compute(
-            cls,
-            n_total: int,
-            labels: Labels,
-            batch_size: int = 1000,
-            threshold: float = 0.1,
-            scores: None = None,
-            is_prioritised: None = None,
-            full_labels: None = None,
-            bounds: None = None,
+        cls,
+        n_total: int,
+        labels: Labels,
+        batch_size: int = 1000,
+        threshold: float = 0.1,
+        scores: None = None,
+        is_prioritised: None = None,
+        full_labels: None = None,
+        bounds: None = None,
     ) -> LogEntry:
         """
         Implements GRLStop

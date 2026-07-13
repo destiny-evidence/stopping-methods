@@ -36,15 +36,17 @@ type Classifier = SGDClassifier | SVC | LogisticRegression | LGBMClassifier | Ga
 
 
 class _SimpleRanking(AbstractRanker):
-    def __init__(self,
-                 BaseModel: Type[Classifier],
-                 model_params: dict[str, Any],
-                 train_mode: TrainMode = TrainMode.RESET,
-                 tuning: bool = False,
-                 tuning_trials: int = 35,
-                 scoring: str | None = None,
-                 random_seed: int | None = None,
-                 **kwargs: dict[str, Any]):
+    def __init__(
+        self,
+        BaseModel: Type[Classifier],
+        model_params: dict[str, Any],
+        train_mode: TrainMode = TrainMode.RESET,
+        tuning: bool = False,
+        tuning_trials: int = 35,
+        scoring: str | None = None,
+        random_seed: int | None = None,
+        **kwargs: dict[str, Any],
+    ):
         super().__init__(train_mode=train_mode, tuning=tuning, **kwargs)
         self.model_params = model_params
         self.BaseModel = BaseModel
@@ -59,11 +61,13 @@ class _SimpleRanking(AbstractRanker):
 
     @property
     def key(self):
-        key = (f'{self.name}'
-               f'-{self.train_mode}'
-               f'-{self.dataset.batch_strategy}'
-               f'-{self.dataset.vectorizer.ngram_range[0]}_{self.dataset.vectorizer.ngram_range[1]}'
-               f'-{self.dataset.vectorizer.max_features}')
+        key = (
+            f'{self.name}'
+            f'-{self.train_mode}'
+            f'-{self.dataset.batch_strategy}'
+            f'-{self.dataset.vectorizer.ngram_range[0]}_{self.dataset.vectorizer.ngram_range[1]}'
+            f'-{self.dataset.vectorizer.max_features}'
+        )
         if self.tuning:
             key = f'{key}-tuned'
         return f'{key}-{self.get_hash()}'
@@ -75,7 +79,7 @@ class _SimpleRanking(AbstractRanker):
         self.model = None
 
     def _tune(self, trial: optuna.Trial, x: np.ndarray, y: np.ndarray) -> float:
-        self.model_params = (self.model_params | self._hp_space(trial))
+        self.model_params = self.model_params | self._hp_space(trial)
         model = self.BaseModel(**self.model_params)
         cv = StratifiedKFold(n_splits=2, shuffle=True, random_state=self.random_seed)
         score = cross_val_score(model, x, y, cv=cv, scoring=self.scoring)
@@ -99,9 +103,7 @@ class _SimpleRanking(AbstractRanker):
                 self.model.fit(x, y)
             elif self.tuning:
                 study = optuna.create_study(direction='maximize')
-                study.optimize(lambda trial: self._tune(trial, x, y),
-                               n_trials=self.tuning_trials,
-                               n_jobs=settings.N_JOBS)
+                study.optimize(lambda trial: self._tune(trial, x, y), n_trials=self.tuning_trials, n_jobs=settings.N_JOBS)
                 logger.debug(f'Hyper-parameter-tuning for {self.name} done with best score {study.best_value}')
                 self.model = self.BaseModel(**(self.model_params | study.best_params))
                 self.model.fit(x, y)
@@ -134,76 +136,63 @@ class _SimpleRanking(AbstractRanker):
             'model': self.name,
         }
         if preview:
-            return base | {
-                'hyperparams': self.model_params
-            }
-        return base | {
-            'hyperparams': {
-                k: getattr(self.model, k)
-                for k in self.model_params.keys()
-            }
-        }
+            return base | {'hyperparams': self.model_params}
+        return base | {'hyperparams': {k: getattr(self.model, k) for k in self.model_params.keys()}}
 
 
 class SVMRanker(_SimpleRanking):
     name = 'svm'
 
-    def __init__(self,
-                 train_mode: TrainMode = TrainMode.RESET,
-                 tuning: bool = False,
-                 tuning_trials: int = 35,
-                 model_params: dict[str, Any] | None = None,
-                 random_seed: int | None = None,
-                 **kwargs: dict[str, Any]):
+    def __init__(
+        self,
+        train_mode: TrainMode = TrainMode.RESET,
+        tuning: bool = False,
+        tuning_trials: int = 35,
+        model_params: dict[str, Any] | None = None,
+        random_seed: int | None = None,
+        **kwargs: dict[str, Any],
+    ):
         super().__init__(
             BaseModel=SVC,
-            model_params={
-                             'kernel': 'linear',
-                             'class_weight': 'balanced',
-                             'degree': 3,
-                             'gamma': 'auto',
-                             'probability': True,
-                             'C': 1.0,
-                             'max_iter': 1000
-                         } | (model_params or {}),
+            model_params={'kernel': 'linear', 'class_weight': 'balanced', 'degree': 3, 'gamma': 'auto', 'probability': True, 'C': 1.0, 'max_iter': 1000}
+            | (model_params or {}),
             train_mode=train_mode,
             tuning=tuning,
             tuning_trials=tuning_trials,
             scoring='recall',
             random_seed=random_seed,
-            **kwargs)
+            **kwargs,
+        )
 
     def _hp_space(self, trial: optuna.Trial) -> dict[str, Any]:
         return {
             'C': trial.suggest_float('C', low=0.001, high=100, log=True),
             'gamma': trial.suggest_float('gamma', 0.001, 1.0, log=True),
-            'kernel': trial.suggest_categorical('kernel', ['linear', 'rbf'])  # , 'poly', 'sigmoid'
+            'kernel': trial.suggest_categorical('kernel', ['linear', 'rbf']),  # , 'poly', 'sigmoid'
         }
 
 
 class SGDRanker(_SimpleRanking):
     name = 'sgd'
 
-    def __init__(self,
-                 train_mode: TrainMode = TrainMode.RESET,
-                 tuning: bool = False,
-                 tuning_trials: int = 35,
-                 model_params: dict[str, Any] | None = None,
-                 random_seed: int | None = None,
-                 **kwargs: dict[str, Any]):
+    def __init__(
+        self,
+        train_mode: TrainMode = TrainMode.RESET,
+        tuning: bool = False,
+        tuning_trials: int = 35,
+        model_params: dict[str, Any] | None = None,
+        random_seed: int | None = None,
+        **kwargs: dict[str, Any],
+    ):
         super().__init__(
             BaseModel=SGDClassifier,
-            model_params={
-                             'class_weight': 'balanced',
-                             'loss': 'log_loss',
-                             'max_iter': 1000
-                         } | (model_params or {}),
+            model_params={'class_weight': 'balanced', 'loss': 'log_loss', 'max_iter': 1000} | (model_params or {}),
             train_mode=train_mode,
             tuning=tuning,
             tuning_trials=tuning_trials,
             scoring='recall',
             random_seed=random_seed,
-            **kwargs
+            **kwargs,
         )
 
     def _hp_space(self, trial: optuna.Trial) -> dict[str, Any]:
@@ -215,28 +204,31 @@ class SGDRanker(_SimpleRanking):
 class RegressionRanker(_SimpleRanking):
     name = 'logreg'
 
-    def __init__(self,
-                 train_mode: TrainMode = TrainMode.RESET,
-                 tuning: bool = False,
-                 tuning_trials: int = 35,
-                 model_params: dict[str, Any] | None = None,
-                 random_seed: int | None = None,
-                 **kwargs: dict[str, Any]):
+    def __init__(
+        self,
+        train_mode: TrainMode = TrainMode.RESET,
+        tuning: bool = False,
+        tuning_trials: int = 35,
+        model_params: dict[str, Any] | None = None,
+        random_seed: int | None = None,
+        **kwargs: dict[str, Any],
+    ):
         super().__init__(
             BaseModel=LogisticRegression,
             model_params={
-                             'class_weight': 'balanced',
-                             'tol': 0.0001,
-                             'C': 1.0,
-                             'solver': 'lbfgs',
-                             'max_iter': 100,
-                         } | (model_params or {}),
+                'class_weight': 'balanced',
+                'tol': 0.0001,
+                'C': 1.0,
+                'solver': 'lbfgs',
+                'max_iter': 100,
+            }
+            | (model_params or {}),
             train_mode=train_mode,
             tuning=tuning,
             tuning_trials=tuning_trials,
             scoring='recall',
             random_seed=random_seed,
-            **kwargs
+            **kwargs,
         )
 
     def _hp_space(self, trial: optuna.Trial) -> dict[str, Any]:
@@ -249,32 +241,35 @@ class RegressionRanker(_SimpleRanking):
 class IsolationForestRanker(_SimpleRanking):
     name = 'isoforest'
 
-    def __init__(self,
-                 train_mode: TrainMode = TrainMode.RESET,
-                 tuning: bool = False,
-                 tuning_trials: int = 35,
-                 model_params: dict[str, Any] | None = None,
-                 random_seed: int | None = None,
-                 **kwargs: dict[str, Any]):
+    def __init__(
+        self,
+        train_mode: TrainMode = TrainMode.RESET,
+        tuning: bool = False,
+        tuning_trials: int = 35,
+        model_params: dict[str, Any] | None = None,
+        random_seed: int | None = None,
+        **kwargs: dict[str, Any],
+    ):
         super().__init__(
             BaseModel=IsolationForest,
             model_params={
-                             'n_estimators': 100,
-                             'max_samples': "auto",
-                             'contamination': "auto",
-                             'max_features': 1.0,
-                             'bootstrap': False,
-                             'n_jobs': None,
-                             'random_state': None,
-                             'verbose': 0,
-                             'warm_start': False,
-                         } | (model_params or {}),
+                'n_estimators': 100,
+                'max_samples': 'auto',
+                'contamination': 'auto',
+                'max_features': 1.0,
+                'bootstrap': False,
+                'n_jobs': None,
+                'random_state': None,
+                'verbose': 0,
+                'warm_start': False,
+            }
+            | (model_params or {}),
             train_mode=train_mode,
             tuning=tuning,
             tuning_trials=tuning_trials,
             scoring='recall',
             random_seed=random_seed,
-            **kwargs
+            **kwargs,
         )
 
     def _hp_space(self, trial: optuna.Trial) -> dict[str, Any]:
@@ -287,13 +282,15 @@ class IsolationForestRanker(_SimpleRanking):
 class NaiveBayesRanker(_SimpleRanking):
     name = 'naivebayes'
 
-    def __init__(self,
-                 train_mode: TrainMode = TrainMode.RESET,
-                 tuning: bool = False,
-                 tuning_trials: int = 35,
-                 model_params: dict[str, Any] | None = None,
-                 random_seed: int | None = None,
-                 **kwargs: dict[str, Any]):
+    def __init__(
+        self,
+        train_mode: TrainMode = TrainMode.RESET,
+        tuning: bool = False,
+        tuning_trials: int = 35,
+        model_params: dict[str, Any] | None = None,
+        random_seed: int | None = None,
+        **kwargs: dict[str, Any],
+    ):
         super().__init__(
             BaseModel=GaussianNB,
             model_params=(model_params or {}),
@@ -302,7 +299,7 @@ class NaiveBayesRanker(_SimpleRanking):
             tuning_trials=tuning_trials,
             scoring='recall',
             random_seed=random_seed,
-            **kwargs
+            **kwargs,
         )
 
     def _hp_space(self, trial: optuna.Trial) -> dict[str, Any]:
@@ -312,12 +309,14 @@ class NaiveBayesRanker(_SimpleRanking):
 class LightGBMRanker(_SimpleRanking):
     name = 'lightgbm'
 
-    def __init__(self,
-                 train_mode: TrainMode = TrainMode.RESET,
-                 tuning: bool = False,
-                 tuning_trials: int = 35,
-                 model_params: dict[str, Any] | None = None,
-                 **kwargs: dict[str, Any]):
+    def __init__(
+        self,
+        train_mode: TrainMode = TrainMode.RESET,
+        tuning: bool = False,
+        tuning_trials: int = 35,
+        model_params: dict[str, Any] | None = None,
+        **kwargs: dict[str, Any],
+    ):
         super().__init__(
             BaseModel=LGBMClassifier,
             model_params={
@@ -327,13 +326,13 @@ class LightGBMRanker(_SimpleRanking):
                 'num_leaves': 31,  # Number of leaves in each tree
                 'random_state': 42,  # For reproducibility
                 'verbose': -1,
-                **(model_params or {})
+                **(model_params or {}),
             },
             train_mode=train_mode,
             tuning=tuning,
             tuning_trials=tuning_trials,
             scoring='recall',
-            **kwargs
+            **kwargs,
         )
 
     def _hp_space(self, trial: optuna.Trial) -> dict[str, Any]:

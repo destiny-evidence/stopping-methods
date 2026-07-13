@@ -54,7 +54,8 @@ class Dataset:
     def __init__(
         self,
         key: str,
-        labels: list[int], texts: list[str],
+        labels: list[int],
+        texts: list[str],
         num_random_init: int = 100,
         batch_strategy: BatchStrategy = BatchStrategy.STATIC,
         stat_batch_size: int = 100,
@@ -119,7 +120,9 @@ class Dataset:
         logger.info('Preprocessing texts...')
         self.stripped_texts = [process_text_aggressive(txt) for txt in tqdm(self.texts, desc='tokenising')]
         self.vectorizer = TfidfVectorizer(
-            ngram_range=ngram_range, max_features=max_features, min_df=min_df,
+            ngram_range=ngram_range,
+            max_features=max_features,
+            min_df=min_df,
             strip_accents='unicode',
         )
         scaler = StandardScaler(with_mean=False)
@@ -179,8 +182,8 @@ class Dataset:
     def get_next_batch_size(self) -> int:
         logger.info(
             f'Batch size compute for {self.n_seen:,} seen, {self.n_unseen:,} unseen, {self.n_total:,} total '
-            f'({self.seen_data['label'].sum():,} includes seen |'
-            f' {self.unseen_data['label'].sum():,} includes left)',
+            f'({self.seen_data["label"].sum():,} includes seen |'
+            f' {self.unseen_data["label"].sum():,} includes left)',
         )
         if self.n_seen >= self.n_total:
             logger.info('Computed next batch size: 0 (reached end of dataset)')
@@ -194,9 +197,7 @@ class Dataset:
         if self.batch_strategy == BatchStrategy.DYNAMIC:
             if self.min_batch_incl > 0:
                 remaining_includes = np.argwhere(
-                    self.unseen_data
-                    .sort_values(by='order')['label']
-                    .cumsum() > self.min_batch_incl,
+                    self.unseen_data.sort_values(by='order')['label'].cumsum() > self.min_batch_incl,
                 )
                 target = remaining_includes.min() if len(remaining_includes) > 0 else self.n_unseen
                 logger.info(f'Computed target batch size: {target:,} (adaptive min. num. includes)')
@@ -206,8 +207,7 @@ class Dataset:
 
             batch_size = min(self.max_batch_size, max(self.min_batch_size, target))
             logger.info(
-                f'Computed next batch size: {batch_size:,} '
-                f'(adaptive [{self.min_batch_size:,}, {self.max_batch_size:,}])',
+                f'Computed next batch size: {batch_size:,} (adaptive [{self.min_batch_size:,}, {self.max_batch_size:,}])',
             )
             return batch_size
 
@@ -223,7 +223,7 @@ class Dataset:
                 logger.debug(f'Preparing initial holdout sample of length {self.initial_holdout:,}')
                 holdout_idxs = self.unseen_data[self.unseen_data['label'] == 1].index.tolist()
                 random.shuffle(holdout_idxs)
-                self.initial_holdout_idxs = holdout_idxs[:self.initial_holdout]
+                self.initial_holdout_idxs = holdout_idxs[: self.initial_holdout]
 
                 # remove holdouts from the indices to sample from
                 idxs = [idx for idx in idxs if idx not in holdout_idxs]
@@ -242,7 +242,7 @@ class Dataset:
                     logger.warning('Initial sample did not have enough includes, going to inject some!')
                     incl_idxs = self.unseen_data[self.unseen_data['label'] == 1].index.tolist()
                     init_idxs = idxs[:batch_size]
-                    incl_idxs = list(set(incl_idxs) - set(init_idxs))[:min_incl - num_incl]
+                    incl_idxs = list(set(incl_idxs) - set(init_idxs))[: min_incl - num_incl]
                     idxs = incl_idxs + idxs  # FIXME: potentially we are pushing out a previously included one...
 
         logger.info(f'Picking the next {batch_size} samples from a random set of unseen records')
@@ -256,9 +256,7 @@ class Dataset:
             raise StopIteration
 
         # Handle random batch injection (or initial batch)
-        if (self.last_batch == 0
-            or (self.inject_random_batch_every > 0
-                and (self.last_batch % self.inject_random_batch_every) == 0)):
+        if self.last_batch == 0 or (self.inject_random_batch_every > 0 and (self.last_batch % self.inject_random_batch_every) == 0):
             logger.info(f'Preparing random batch  @ {self.last_batch:,} % {self.inject_random_batch_every}!')
             idxs = self.get_random_unseen_sample(self.num_random_init if self.last_batch == 0 else None)
             # add our batch data to the table
@@ -296,8 +294,7 @@ class Dataset:
             idxs = self.df.index[ordering[:batch_size]].to_list()
         else:
             raise AttributeError(
-                'Number of prediction scores do not match number of '
-                'all or remaining unseen documents.',
+                'Number of prediction scores do not match number of all or remaining unseen documents.',
             )
         self.df.loc[idxs, 'order'] = np.arange(batch_size) + n_seen
         self.df.loc[idxs, 'batch'] = batch_i
@@ -345,7 +342,7 @@ class Dataset:
 
 class RankedDataset:
     def __init__(self, ranking_info_fp: Path):
-        self.ranking_fp = f'{ranking_info_fp.with_suffix('')}.feather'
+        self.ranking_fp = f'{ranking_info_fp.with_suffix("")}.feather'
 
         logger.info(f'Ranking from: {self.ranking_fp}')
         logger.debug(f'Info from {ranking_info_fp}')
@@ -360,8 +357,7 @@ class RankedDataset:
         self._scores: list[float] | None = None
 
     def __str__(self):
-        return (f'RankedDataset(n_total={self.n_total:,}, n_incl={self.n_incl:,}, incl_rate={self.inclusion_rate:.1%})'
-                f'| {self.info['key']}')
+        return f'RankedDataset(n_total={self.n_total:,}, n_incl={self.n_incl:,}, incl_rate={self.inclusion_rate:.1%})| {self.info["key"]}'
 
     @property
     def n_total(self) -> int:
@@ -417,9 +413,11 @@ class RankedDataset:
             return np.array([counts.index, counts.cumsum() - counts.iloc[0], counts.cumsum()]).T
 
         bounds = np.linspace(
-            start=0, stop=self.n_total,
+            start=0,
+            stop=self.n_total,
             num=(self.n_total // batch_size) + 1,
-            endpoint=True, dtype=int,
+            endpoint=True,
+            dtype=int,
         ).tolist()
         if orig_batch_nums:
             batches = self.ranking.sort_values(['batch', 'order']).iloc[bounds[:-1]]['batch']
@@ -436,11 +434,12 @@ class RankedDataset:
         for bi, idx_start, idx_end in self.bounds(batch_size=batch_size, orig_batch_nums=orig_batch_nums):
             yield (
                 bi,
-                (idx_start, idx_end), (
+                (idx_start, idx_end),
+                (
                     df.iloc[idx_start:idx_end]['label'].to_numpy(),
                     df['score'].to_numpy(),
                     (~df.iloc[idx_start:idx_end]['random']).to_numpy(),
-                )
+                ),
             )
 
     def cum_batches(
@@ -461,5 +460,5 @@ class RankedDataset:
                     df.iloc[:idx_end]['label'].to_numpy(),
                     df['score'].to_numpy(),
                     (~df.iloc[:idx_end]['random']).to_numpy(),
-                )
+                ),
             )

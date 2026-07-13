@@ -31,16 +31,14 @@ def read_file(file_path: Path, key: str) -> Dataset:
     df = df[((df['label_abs'] == 0) | (df['label_abs'] == 1)) & df['abstract'].str.len() > 0]
 
     return Dataset(
-        key=key,
-        labels=[rec['label_abs'] for _, rec in df.iterrows()],
-        texts=[(rec['title'] or '') + ' ' + (rec['abstract'] or '') for _, rec in df.iterrows()]
+        key=key, labels=[rec['label_abs'] for _, rec in df.iterrows()], texts=[(rec['title'] or '') + ' ' + (rec['abstract'] or '') for _, rec in df.iterrows()]
     )
 
 
 def read_csv_dataset(key: str) -> Dataset:
     base = GenericCollection.BASE
     base_dir = settings.raw_data_path / base
-    base_name = key[len(base) + 1:]
+    base_name = key[len(base) + 1 :]
     file_path = base_dir / f'{base_name}.csv'
     if not file_path.exists():
         raise AssertionError(f'Files for {key} not valid: {file_path}')

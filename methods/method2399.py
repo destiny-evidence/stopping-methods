@@ -26,15 +26,15 @@ class Method2399(Method[None, None, None, None]):
 
     @classmethod
     def compute(
-            cls,
-            n_total: int,
-            labels: Labels,
-            alpha: float = 1.0,
-            constant: int = 2399,
-            scores: None = None,
-            is_prioritised: None = None,
-            full_labels: None = None,
-            bounds: None = None,
+        cls,
+        n_total: int,
+        labels: Labels,
+        alpha: float = 1.0,
+        constant: int = 2399,
+        scores: None = None,
+        is_prioritised: None = None,
+        full_labels: None = None,
+        bounds: None = None,
     ) -> LogEntry:
         """
         This is a stopping method based on the formula

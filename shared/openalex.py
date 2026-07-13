@@ -54,17 +54,13 @@ def fetch_works(params: dict[str, Any], fields: list[str] | None = None):
         with rate_limit(min_time_ms=100) as t:
             res = httpx.get(
                 'https://api.openalex.org/works',
-                params={
-                           'cursor': cursor,
-                           'per-page': 200,
-                           'select': ','.join(fields)
-                       } | params,
+                params={'cursor': cursor, 'per-page': 200, 'select': ','.join(fields)} | params,
                 # headers={'api_key': os.getenv('API_KEY')},
                 timeout=None,
             )
             page = res.json()
             cursor = page['meta']['next_cursor']
-            logger.info(f'Retrieved {ids:,}/{page['meta']['count']:,}; currently on page {page_i}')
+            logger.info(f'Retrieved {ids:,}/{page["meta"]["count"]:,}; currently on page {page_i}')
 
             for res in page['results']:
                 if res.get('abstract_inverted_index'):
@@ -73,6 +69,7 @@ def fetch_works(params: dict[str, Any], fields: list[str] | None = None):
 
                 yield res
                 ids += 1
+
 
 FIELDS_TO_FETCH = [
     'id',
@@ -124,5 +121,5 @@ FIELDS_TO_FETCH = [
     # 'cited_by_api_url',
     # 'counts_by_year',
     'updated_date',
-    'created_date'
+    'created_date',
 ]

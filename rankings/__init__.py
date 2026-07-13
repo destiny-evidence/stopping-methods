@@ -27,7 +27,7 @@ def assert_models(models: list[str]) -> list[str]:
 
 
 def it_tuning_rankers(models: list[str] | None = None) -> Generator[AbstractRanker, None, None]:
-    for model in (models or MODELS.keys()):
+    for model in models or MODELS.keys():
         yield MODELS[model](tuning=True, train_mode=TrainMode.RESET)
 
 
@@ -72,6 +72,7 @@ def it_rankers(models: list[str], use_fine_tuning: bool = False) -> Generator[Ab
     if TransRanker.name in models:
         for pre_trained_model in DEFAULT_MODELS:
             yield TransRanker(tuning=False, models=pre_trained_model)
+
 
 # import rankings
 # def it_rankers() -> Generator[AbstractRanker, None, None]:

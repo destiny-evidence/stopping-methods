@@ -11,10 +11,7 @@ from xml.etree.ElementTree import Element
 import httpx
 from httpx import Client, codes, Response, URL
 from httpx._client import UseClientDefault, USE_CLIENT_DEFAULT
-from httpx._types import (
-    RequestContent, RequestData, RequestFiles, QueryParamTypes, HeaderTypes, CookieTypes,
-    AuthTypes, TimeoutTypes, RequestExtensions
-)
+from httpx._types import RequestContent, RequestData, RequestFiles, QueryParamTypes, HeaderTypes, CookieTypes, AuthTypes, TimeoutTypes, RequestExtensions
 from shared.method import Method
 
 T = TypeVar('T')
@@ -32,10 +29,7 @@ def batched(lst: Sequence[T] | Generator[T, None, None], batch_size: int) -> Gen
 
 
 class RequestClient(Client):
-    def __init__(self, *,
-                 max_req_per_sec: int = 5, max_retries: int = 5, timeout_rate: float = 5.,
-                 retry_on_status: list[int] | None = None,
-                 **kwargs):
+    def __init__(self, *, max_req_per_sec: int = 5, max_retries: int = 5, timeout_rate: float = 5.0, retry_on_status: list[int] | None = None, **kwargs):
         super().__init__(**kwargs)
 
         self.max_req_per_sec = max_req_per_sec
@@ -54,13 +48,16 @@ class RequestClient(Client):
 
     def switch_proxy(self, proxy: str | None = None):
         if proxy != self.kwargs.get('proxy'):
-            client = self.__class__(**{
-                **self.kwargs,
-                'proxy': proxy,
-                'max_req_per_sec': self.max_req_per_sec,
-                'max_retries': self.max_retries,
-                'timeout_rate': self.timeout_rate,
-                'retry_on_status': self.retry_on_status})
+            client = self.__class__(
+                **{
+                    **self.kwargs,
+                    'proxy': proxy,
+                    'max_req_per_sec': self.max_req_per_sec,
+                    'max_retries': self.max_retries,
+                    'timeout_rate': self.timeout_rate,
+                    'retry_on_status': self.retry_on_status,
+                }
+            )
             self.__dict__.update(client.__dict__)
 
     def on(self, status: int, func: typing.Callable[[Response], dict[str, typing.Any]]):
@@ -68,21 +65,21 @@ class RequestClient(Client):
 
     @typing.override
     def request(
-            self,
-            method: str,
-            url: URL | str,
-            *,
-            content: RequestContent | None = None,
-            data: RequestData | None = None,
-            files: RequestFiles | None = None,
-            json: typing.Any | None = None,
-            params: QueryParamTypes | None = None,
-            headers: HeaderTypes | None = None,
-            cookies: CookieTypes | None = None,
-            auth: AuthTypes | UseClientDefault | None = USE_CLIENT_DEFAULT,
-            follow_redirects: bool | UseClientDefault = USE_CLIENT_DEFAULT,
-            timeout: TimeoutTypes | UseClientDefault = USE_CLIENT_DEFAULT,
-            extensions: RequestExtensions | None = None,
+        self,
+        method: str,
+        url: URL | str,
+        *,
+        content: RequestContent | None = None,
+        data: RequestData | None = None,
+        files: RequestFiles | None = None,
+        json: typing.Any | None = None,
+        params: QueryParamTypes | None = None,
+        headers: HeaderTypes | None = None,
+        cookies: CookieTypes | None = None,
+        auth: AuthTypes | UseClientDefault | None = USE_CLIENT_DEFAULT,
+        follow_redirects: bool | UseClientDefault = USE_CLIENT_DEFAULT,
+        timeout: TimeoutTypes | UseClientDefault = USE_CLIENT_DEFAULT,
+        extensions: RequestExtensions | None = None,
     ) -> Response:
         for retry in range(self.max_retries):
             # Check if we need to wait before the next request so we are staying below the rate limit
@@ -94,9 +91,21 @@ class RequestClient(Client):
             # Log latest request
             self.last_request = perf_counter()
 
-            response = super().request(method=method, url=url, content=content, data=data, files=files, json=json,
-                                       params=params, headers=headers, cookies=cookies, auth=auth,
-                                       follow_redirects=follow_redirects, timeout=timeout, extensions=extensions)
+            response = super().request(
+                method=method,
+                url=url,
+                content=content,
+                data=data,
+                files=files,
+                json=json,
+                params=params,
+                headers=headers,
+                cookies=cookies,
+                auth=auth,
+                follow_redirects=follow_redirects,
+                timeout=timeout,
+                extensions=extensions,
+            )
 
             try:
                 response.raise_for_status()
@@ -149,9 +158,7 @@ def xml2dict(element: Element) -> dict[str, typing.Any]:
 
 
 @contextmanager
-def elapsed_timer(logger: logging.Logger,
-                  tn: str = 'Task',
-                  log_enter: bool = False) -> Generator[Callable[[], float], None, None]:
+def elapsed_timer(logger: logging.Logger, tn: str = 'Task', log_enter: bool = False) -> Generator[Callable[[], float], None, None]:
     if log_enter:
         logger.debug(f'{tn}...')
     start = default_timer()

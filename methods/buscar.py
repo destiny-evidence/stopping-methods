@@ -26,21 +26,21 @@ class Buscar(Method[None, None, None, None]):
     def parameter_options(cls) -> Generator[MethodParams, None, None]:
         for tr in RECALL_TARGETS:
             for ci in CONFIDENCE_TARGETS:
-                for bias in [1., 2., 5., 10.]:  # NOTE: any bias != 1 is not CMH and does not work yet!
+                for bias in [1.0, 2.0, 5.0, 10.0]:  # NOTE: any bias != 1 is not CMH and does not work yet!
                     yield MethodParams(recall_target=tr, bias=bias, confidence_level=ci)
 
     @classmethod
     def compute(
-            cls,
-            n_total: int,
-            labels: Labels,
-            confidence_level: float = 0.95,
-            recall_target: float = 0.95,
-            bias: float = 1.0,
-            scores: None = None,
-            is_prioritised: None = None,
-            full_labels: None = None,
-            bounds: None = None,
+        cls,
+        n_total: int,
+        labels: Labels,
+        confidence_level: float = 0.95,
+        recall_target: float = 0.95,
+        bias: float = 1.0,
+        scores: None = None,
+        is_prioritised: None = None,
+        full_labels: None = None,
+        bounds: None = None,
     ) -> LogEntry:
         score = calculate_h0(
             labels_=labels,
@@ -55,14 +55,14 @@ class Buscar(Method[None, None, None, None]):
             score=score,
             confidence_level=confidence_level,
             recall_target=recall_target,
-            bias=bias
+            bias=bias,
         )
 
 
 Array = np.ndarray[tuple[int], np.dtype[np.int64]]
 
 
-def calculate_h0(labels_: IntList, n_docs: int, recall_target: float = .95, bias: float = 1.) -> float | None:
+def calculate_h0(labels_: IntList, n_docs: int, recall_target: float = 0.95, bias: float = 1.0) -> float | None:
     """
     Calculates a p-score for our null hypothesis h0, that we have missed our recall target `recall_target`.
 
@@ -81,8 +81,7 @@ def calculate_h0(labels_: IntList, n_docs: int, recall_target: float = .95, bias
              We can reject the null hypothesis (and stop screening) if p is below 1 - our confidence level.
 
     """
-    labels: Array = (labels_ if type(labels_) is np.ndarray
-                     else np.array(labels_, dtype=np.int_))
+    labels: Array = labels_ if type(labels_) is np.ndarray else np.array(labels_, dtype=np.int_)
 
     # Number of relevant documents we have seen
     r_seen = labels.sum()
@@ -95,10 +94,11 @@ def calculate_h0(labels_: IntList, n_docs: int, recall_target: float = .95, bias
     # in each of our urns for the urn to be in keeping with our null hypothesis
     # that we have missed our target
     k_hat = np.floor(
-        r_seen / recall_target + 1 -  # Divide num of relevant documents by our recall target and add 1  # noqa: W504
-        (
-                r_seen -  # from this we subtract the total relevant documents seen  # noqa: W504
-                urns.cumsum()  # before each urn
+        r_seen / recall_target
+        + 1  # Divide num of relevant documents by our recall target and add 1  # noqa: W504
+        - (
+            r_seen  # from this we subtract the total relevant documents seen  # noqa: W504
+            - urns.cumsum()  # before each urn
         )
     )
 
@@ -109,7 +109,7 @@ def calculate_h0(labels_: IntList, n_docs: int, recall_target: float = .95, bias
             urns.cumsum(),  # the number of relevant documents in the sample
             n_docs - (urns.shape[0] - urn_sizes),  # In a population made up out of the urn and all remaining docs
             k_hat,  # Where K_hat docs in the population are actually relevant
-            urn_sizes  # After observing this many documents
+            urn_sizes,  # After observing this many documents
         )
     else:
         p = nchypergeom_wallenius.cdf(
@@ -117,7 +117,7 @@ def calculate_h0(labels_: IntList, n_docs: int, recall_target: float = .95, bias
             n_docs - (urns.shape[0] - urn_sizes),  # In a population made up out of the urn and all remaining docs
             k_hat,  # Where K_hat docs in the population are actually relevant
             urn_sizes,  # After observing this many documents
-            bias  # Where we are bias times more likely to pick a random relevant document
+            bias,  # Where we are bias times more likely to pick a random relevant document
         )
 
     # We computed this for all, so only return the smallest

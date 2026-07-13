@@ -44,9 +44,9 @@ def fetch(ids: list[dict[str, str]]) -> Generator[dict[str, Any], None, None]:
     parts = []
     for reference in ids:
         if reference.get('pubmed_id'):
-            parts.append(f'{reference['pubmed_id']}[PMID]')
+            parts.append(f'{reference["pubmed_id"]}[PMID]')
         if reference.get('doi'):
-            parts.append(f'"{reference['doi']}"[DOI]')
+            parts.append(f'"{reference["doi"]}"[DOI]')
 
     if len(parts) == 0:
         raise ValueError('Found no scopus ids or DOIs to query pubed')
@@ -98,11 +98,14 @@ def fetch(ids: list[dict[str, str]]) -> Generator[dict[str, Any], None, None]:
 
 
 if __name__ == '__main__':
-    for ri, record in enumerate(fetch(
+    for ri, record in enumerate(
+        fetch(
             ids=[
                 {'pubmed_id': '17975327'},
                 {'doi': '10.1046/j.1464-410x.1997.02667.x'},
-            ])):
+            ]
+        )
+    ):
         print(record)
         if ri > 100:
             break
