@@ -31,9 +31,9 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 DEFAULT_MODELS = [
     'prajjwal1/bert-tiny',
-    # 'allenai/scibert_scivocab_uncased',
+    'allenai/scibert_scivocab_uncased',
     # 'climatebert/distilroberta-base-climate-f',
-    # 'malteos/scincl',
+    'malteos/scincl',
     # 'distilbert-base',
 ]
 

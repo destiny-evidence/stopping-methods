@@ -52,19 +52,19 @@ class BatchStrategy(str, Enum):
 
 class Dataset:
     def __init__(
-            self,
-            key: str,
-            labels: list[int], texts: list[str],
-            num_random_init: int = 100,
-            batch_strategy: BatchStrategy = BatchStrategy.STATIC,
-            stat_batch_size: int = 100,
-            dyn_min_batch_incl: int = 2,
-            dyn_min_batch_size: int = 100,
-            dyn_growth_rate: float = 0.5,
-            dyn_max_batch_size: int = 200,
-            inject_random_batch_every: int = 0,
-            initial_holdout: int = 0,
-            grow_init_batch: bool = True,
+        self,
+        key: str,
+        labels: list[int], texts: list[str],
+        num_random_init: int = 100,
+        batch_strategy: BatchStrategy = BatchStrategy.STATIC,
+        stat_batch_size: int = 100,
+        dyn_min_batch_incl: int = 2,
+        dyn_min_batch_size: int = 100,
+        dyn_growth_rate: float = 0.5,
+        dyn_max_batch_size: int = 200,
+        inject_random_batch_every: int = 0,
+        initial_holdout: int = 0,
+        grow_init_batch: bool = True,
     ):
         self.KEY = key
         self.labels = labels
@@ -88,20 +88,22 @@ class Dataset:
         self.initial_holdout_idxs: list[int] | None = None
         self.grow_init_batch = grow_init_batch
 
-    def init(self,
-             num_random_init: int = 100,
-             batch_strategy: BatchStrategy = BatchStrategy.STATIC,
-             stat_batch_size: int = 100,
-             dyn_min_batch_incl: int = 2,
-             dyn_min_batch_size: int = 100,
-             dyn_growth_rate: float = 0.5,
-             dyn_max_batch_size: int = 200,
-             inject_random_batch_every: int = 0,
-             initial_holdout: int = 0,
-             grow_init_batch: bool = True,
-             max_features: int = 75000,
-             ngram_range: tuple[int, int] = (1, 3),
-             min_df: int | float = 3):
+    def init(
+        self,
+        num_random_init: int = 100,
+        batch_strategy: BatchStrategy = BatchStrategy.STATIC,
+        stat_batch_size: int = 100,
+        dyn_min_batch_incl: int = 2,
+        dyn_min_batch_size: int = 100,
+        dyn_growth_rate: float = 0.5,
+        dyn_max_batch_size: int = 200,
+        inject_random_batch_every: int = 0,
+        initial_holdout: int = 0,
+        grow_init_batch: bool = True,
+        max_features: int = 75000,
+        ngram_range: tuple[int, int] = (1, 3),
+        min_df: int | float = 3,
+    ):
         self.num_random_init = num_random_init
         self.batch_strategy = batch_strategy
         self.batch_size = stat_batch_size
@@ -116,8 +118,10 @@ class Dataset:
 
         logger.info('Preprocessing texts...')
         self.stripped_texts = [process_text_aggressive(txt) for txt in tqdm(self.texts, desc='tokenising')]
-        self.vectorizer = TfidfVectorizer(ngram_range=ngram_range, max_features=max_features, min_df=min_df,
-                                          strip_accents='unicode')
+        self.vectorizer = TfidfVectorizer(
+            ngram_range=ngram_range, max_features=max_features, min_df=min_df,
+            strip_accents='unicode',
+        )
         scaler = StandardScaler(with_mean=False)
         vectors = self.vectorizer.fit_transform(self.stripped_texts)
         self.vectors = scaler.fit_transform(vectors)
@@ -159,21 +163,25 @@ class Dataset:
         return self.df[self.df['batch'].isna()]
 
     def reset(self) -> None:
-        self.df = pd.DataFrame({
-            'id': np.arange(len(self.texts)),
-            'batch': None,
-            'order': None,
-            'random': None,
-            'model': None,
-            'score': None,
-            'label': self.labels,
-            'text': self.texts,
-        })
+        self.df = pd.DataFrame(
+            {
+                'id': np.arange(len(self.texts)),
+                'batch': None,
+                'order': None,
+                'random': None,
+                'model': None,
+                'score': None,
+                'label': self.labels,
+                'text': self.texts,
+            },
+        )
 
     def get_next_batch_size(self) -> int:
-        logger.info(f'Batch size compute for {self.n_seen:,} seen, {self.n_unseen:,} unseen, {self.n_total:,} total '
-                    f'({self.seen_data['label'].sum():,} includes seen |'
-                    f' {self.unseen_data['label'].sum():,} includes left)')
+        logger.info(
+            f'Batch size compute for {self.n_seen:,} seen, {self.n_unseen:,} unseen, {self.n_total:,} total '
+            f'({self.seen_data['label'].sum():,} includes seen |'
+            f' {self.unseen_data['label'].sum():,} includes left)',
+        )
         if self.n_seen >= self.n_total:
             logger.info('Computed next batch size: 0 (reached end of dataset)')
             return 0
@@ -185,9 +193,11 @@ class Dataset:
 
         if self.batch_strategy == BatchStrategy.DYNAMIC:
             if self.min_batch_incl > 0:
-                remaining_includes = np.argwhere(self.unseen_data
-                                                 .sort_values(by='order')['label']
-                                                 .cumsum() > self.min_batch_incl)
+                remaining_includes = np.argwhere(
+                    self.unseen_data
+                    .sort_values(by='order')['label']
+                    .cumsum() > self.min_batch_incl,
+                )
                 target = remaining_includes.min() if len(remaining_includes) > 0 else self.n_unseen
                 logger.info(f'Computed target batch size: {target:,} (adaptive min. num. includes)')
             else:
@@ -195,8 +205,10 @@ class Dataset:
                 logger.info(f'Computed target batch size: {target:,} (adaptive growth_rate @ {self.growth_rate})')
 
             batch_size = min(self.max_batch_size, max(self.min_batch_size, target))
-            logger.info(f'Computed next batch size: {batch_size:,} '
-                        f'(adaptive [{self.min_batch_size:,}, {self.max_batch_size:,}])')
+            logger.info(
+                f'Computed next batch size: {batch_size:,} '
+                f'(adaptive [{self.min_batch_size:,}, {self.max_batch_size:,}])',
+            )
             return batch_size
 
         raise AttributeError('Batch strategy not supported')
@@ -245,8 +257,8 @@ class Dataset:
 
         # Handle random batch injection (or initial batch)
         if (self.last_batch == 0
-                or (self.inject_random_batch_every > 0
-                    and (self.last_batch % self.inject_random_batch_every) == 0)):
+            or (self.inject_random_batch_every > 0
+                and (self.last_batch % self.inject_random_batch_every) == 0)):
             logger.info(f'Preparing random batch  @ {self.last_batch:,} % {self.inject_random_batch_every}!')
             idxs = self.get_random_unseen_sample(self.num_random_init if self.last_batch == 0 else None)
             # add our batch data to the table
@@ -261,9 +273,11 @@ class Dataset:
             # immediately continue with next batch
             self.prepare_next_batch()
 
-    def register_predictions(self,
-                             scores: np.ndarray[tuple[int], np.dtype[np.float64]],
-                             model: str | None = None) -> None:
+    def register_predictions(
+        self,
+        scores: np.ndarray[tuple[int], np.dtype[np.float64]],
+        model: str | None = None,
+    ) -> None:
         if len(scores) == 0:
             logger.warning('Tried to register predictions but scores are empty')
             return
@@ -281,13 +295,43 @@ class Dataset:
         elif len(scores) == self.n_total:
             idxs = self.df.index[ordering[:batch_size]].to_list()
         else:
-            raise AttributeError('Number of prediction scores do not match number of '
-                                 'all or remaining unseen documents.')
+            raise AttributeError(
+                'Number of prediction scores do not match number of '
+                'all or remaining unseen documents.',
+            )
         self.df.loc[idxs, 'order'] = np.arange(batch_size) + n_seen
         self.df.loc[idxs, 'batch'] = batch_i
         self.df.loc[idxs, 'score'] = scores[ordering[:batch_size]]
         self.df.loc[idxs, 'random'] = False
         self.df.loc[idxs, 'model'] = model
+
+    def register_predictions_full(
+        self,
+        scores: np.ndarray[tuple[int], np.dtype[np.float64]],
+    ) -> None:
+        if len(scores) == 0:
+            logger.warning('Tried to register predictions but scores are empty')
+            return
+
+        if len(scores) != self.n_total:
+            logger.warning('Tried to register predictions but scores did not match dataset size')
+            return
+
+        # fetch numbers here to avoid side effects later
+        batch_i = self.last_batch + 1
+        n_seen = self.n_seen
+        logger.info(f'Registering predictions for {scores.shape} records as batch {batch_i}')
+
+        batch_size = self.get_next_batch_size()
+
+        unseen_scores = scores[self.df['batch'].isna()]
+        unseen_ordering = (-unseen_scores).argsort()
+        idxs = self.unseen_data.index[unseen_ordering[:batch_size]].to_list()
+
+        self.df.loc[idxs, 'order'] = np.arange(batch_size) + n_seen
+        self.df.loc[idxs, 'batch'] = batch_i
+        self.df.loc[idxs, f'score_{batch_i}'] = scores
+        self.df.loc[idxs, 'random'] = False
 
     def store(self, target: Path) -> None:
         df = self.df.sort_values(by='order').drop('text', axis='columns')
@@ -311,7 +355,7 @@ class RankedDataset:
 
         self.info['key'] = ranking_info_fp.stem
 
-        self.ranking = pd.read_feather(self.ranking_fp)#.replace({np.nan: None})
+        self.ranking = pd.read_feather(self.ranking_fp)  # .replace({np.nan: None})
 
         self._scores: list[float] | None = None
 
@@ -372,9 +416,11 @@ class RankedDataset:
             counts = self.ranking.groupby('batch').count()['id']
             return np.array([counts.index, counts.cumsum() - counts.iloc[0], counts.cumsum()]).T
 
-        bounds = np.linspace(start=0, stop=self.n_total,
-                             num=(self.n_total // batch_size) + 1,
-                             endpoint=True, dtype=int).tolist()
+        bounds = np.linspace(
+            start=0, stop=self.n_total,
+            num=(self.n_total // batch_size) + 1,
+            endpoint=True, dtype=int,
+        ).tolist()
         if orig_batch_nums:
             batches = self.ranking.sort_values(['batch', 'order']).iloc[bounds[:-1]]['batch']
         else:
@@ -382,9 +428,9 @@ class RankedDataset:
         return np.array(list(zip(batches, bounds[:-1], bounds[1:])))
 
     def batches(
-            self,
-            batch_size: int | None = None,
-            orig_batch_nums: bool = True,
+        self,
+        batch_size: int | None = None,
+        orig_batch_nums: bool = True,
     ) -> Generator[tuple[int, tuple[int, int], tuple[Labels, Scores, Sampling]], None, None]:
         df = self.ranking.sort_values(['batch', 'order'])
         for bi, idx_start, idx_end in self.bounds(batch_size=batch_size, orig_batch_nums=orig_batch_nums):
@@ -398,9 +444,9 @@ class RankedDataset:
             )
 
     def cum_batches(
-            self,
-            batch_size: int | None = None ,
-            orig_batch_nums: bool = True,
+        self,
+        batch_size: int | None = None,
+        orig_batch_nums: bool = True,
     ) -> Generator[tuple[list[int], Bounds, tuple[Labels, Scores, Sampling]], None, None]:
         df = self.ranking.sort_values(['batch', 'order'])
         acc_bi: list[int] = []

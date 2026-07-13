@@ -21,6 +21,7 @@ app = typer.Typer()
 class RankingProcess(str, Enum):
     ALL = 'ALL'
     BEST = 'BEST'
+    DEFAULTS = 'DEFAULTS'
 
 
 class ExecutionMode(str, Enum):
@@ -220,7 +221,10 @@ def produce_rankings(
                     dataset.prepare_next_batch()
                     ranker.train()
                     predictions = ranker.predict(predict_on_all=predict_on_all)
-                    dataset.register_predictions(scores=predictions)
+                    if predict_on_all:
+                        dataset.register_predictions_full(scores=predictions)
+                    else:
+                        dataset.register_predictions(scores=predictions)
 
                 # persist to disk and reset
                 logger.info(f'Persisting to disk for {target_key}...')
@@ -341,7 +345,7 @@ set -e
 set -o xtrace
 
 # Set up python environment
-module load anaconda/2024.10
+module load anaconda
 module load cuda
 source "{venv_path}/bin/activate"
 

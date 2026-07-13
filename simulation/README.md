@@ -38,16 +38,17 @@ enrich the dataset from openalex.
 cd /p/tmp/user/
 git clone git@github.com:destiny-evidence/stopping-methods.git
 cd stopping-methods
-module load anaconda/2024.10
+module load anaconda/2025
 # verify we are really using the correct python
 which python
 python --version
-# set up virtualenv
-python -m venv data/venv
-source data/venv/bin/activate
-pip install -r requirements.txt
 
-# pre-compute rankings
+# set up virtualenv
+uv sync --extra experiments --directory data/venv
+source data/venv/bin/activate
+
+# --------------------------------------------------
+# pre-compute rankings (best model and dynamic batching)
  PYTHONPATH=. python simulation/rank.py SLURM --models trans-rank --models svm --models lightgbm --models sgd  --models logreg \
                                 --dyn-min-batch-size 25 --dyn-max-batch-size 200 --dyn-min-batch-incl 2 \
                                 --num-random-init 500 --min-dataset-size 1000 --num-repeats 3 \
@@ -58,7 +59,16 @@ pip install -r requirements.txt
                                 --num-random-init 500 --min-dataset-size 1000 --num-repeats 3 \
                                 --min-inclusion-rate 0.01 --tuning-interval 4 --store-feather --slurm-user "???@pik-potsdam.de" --slurm-hours 23
                                 
-
+# --------------------------------------------------
+# pre-compute rankings (static models and batches)
+uv run --extra experiments -m simulation.rank SLURM --mode-rank ALL \
+                              --models trans-rank --models svm --models lightgbm --models sgd --models logreg \
+                              --num-random-init 500 --min-dataset-size 1000 --min-inclusion-rate 0.01 \
+                              --batch-strategy STATIC --stat-batch-size 50 --num-repeats 3 \
+                              --max-vocab 7000 --max-ngram 1 --min_df 3 \
+                              --predict-on-all --no-use-fine-tuning --train-proportion 1.0 \
+                              --store-feather --no-store-csv \
+                              --slurm-user "???@pik-potsdam.de" --slurm-hours 23 --slurm-gpu --init-nltk
 ```
 
 ## Pre-computing rankings
