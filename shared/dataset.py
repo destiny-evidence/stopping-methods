@@ -327,8 +327,8 @@ class Dataset:
 
         self.df.loc[idxs, 'order'] = np.arange(batch_size) + n_seen
         self.df.loc[idxs, 'batch'] = batch_i
-        self.df.loc[idxs, f'score_{batch_i}'] = scores
         self.df.loc[idxs, 'random'] = False
+        self.df.loc[f'score_{batch_i}'] = scores
 
     def store(self, target: Path) -> None:
         df = self.df.sort_values(by='order').drop('text', axis='columns')

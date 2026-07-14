@@ -65,10 +65,11 @@ uv run --extra experiments -m simulation.rank SLURM --mode-rank ALL \
                               --models trans-rank --models svm --models lightgbm --models sgd --models logreg \
                               --num-random-init 500 --min-dataset-size 1000 --min-inclusion-rate 0.01 \
                               --batch-strategy STATIC --stat-batch-size 50 --num-repeats 3 \
-                              --max-vocab 7000 --max-ngram 1 --min_df 3 \
+                              --max-vocab 7000 --max-ngram 1 --min-df 3 \
                               --predict-on-all --no-use-fine-tuning --train-proportion 1.0 \
                               --store-feather --no-store-csv \
-                              --slurm-user "???@pik-potsdam.de" --slurm-hours 23 --slurm-gpu --init-nltk
+                              --slurm-user "???@pik-potsdam.de" --slurm-hours 23 --slurm-gpu
+# --init-nltk
 ```
 
 ## Pre-computing rankings
