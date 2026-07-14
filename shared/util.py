@@ -1,4 +1,5 @@
 import logging
+import re
 import typing
 from datetime import timedelta
 from time import sleep, perf_counter
@@ -167,3 +168,7 @@ def elapsed_timer(logger: logging.Logger, tn: str = 'Task', log_enter: bool = Fa
     end = default_timer()
     elapser = lambda: end - start
     logger.debug(f'{tn} took {timedelta(seconds=end - start)} to execute.')
+
+
+def safe_hf_name(name: str) -> str:
+    return re.sub(r'[^A-Za-z0-9]+', '_', name)

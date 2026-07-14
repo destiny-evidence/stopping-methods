@@ -21,6 +21,7 @@ from transformers.trainer_utils import PredictionOutput
 from transformers.utils.logging import disable_progress_bar
 from shared.config import settings
 from shared.ranking import AbstractRanker, TrainMode
+from shared.util import safe_hf_name
 
 logger = logging.getLogger('trans-rank')
 logging.getLogger('urllib3').setLevel(logging.ERROR)
@@ -185,7 +186,7 @@ class TransRanker(AbstractRanker):
         if self.tuning:
             key = f'{key}-tuned'
         else:
-            key = f'{key}-{self.models[0]}'
+            key = f'{key}-{safe_hf_name(self.models[0])}'
         return f'{key}-{self.get_hash()}'
 
     def args(
