@@ -338,6 +338,7 @@ def produce_rankings(
             'array': f'1-{(len(datasets) + 1) * num_repeats}',
         }
         if slurm_gpu:
+            fname = 'simulation/rank.gpu.slurm'
             sbatch_args |= {
                 'gres': 'gpu:1',  # number of GPUs
                 'partition': 'gpu',
@@ -345,6 +346,7 @@ def produce_rankings(
                 'cpus-per-task': 5,
             }
         else:
+            fname = 'simulation/rank.cpu.slurm'
             sbatch_args |= {
                 'cpus-per-task': 12,
                 'partition': 'standard',
@@ -353,7 +355,8 @@ def produce_rankings(
         sbatch = [f'#SBATCH --{key}={value}' for key, value in sbatch_args.items()]
         # Write slurm batch file
         # For information on array jobs, see: https://hpcdocs.hpc.arizona.edu/running_jobs/batch_jobs/array_jobs/
-        with open('simulation/rank.slurm', 'w') as slurm_file:
+
+        with open(fname, 'w') as slurm_file:
             slurm_file.write(f"""#!/bin/bash
 
 {'\n'.join(sbatch)}
@@ -420,7 +423,7 @@ python simulation/rank.py SINGLE \\
                --{'' if use_fine_tuning else 'no-'}use-fine-tuning \\
                --{'' if predict_on_all else 'no-'}predict-on-all 
 """)
-        subprocess.run(['sbatch', 'simulation/rank.slurm'])
+        subprocess.run(['sbatch', fname])
 
 
 if __name__ == '__main__':

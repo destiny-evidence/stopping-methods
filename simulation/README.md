@@ -58,12 +58,12 @@ source data/venv/bin/activate
                                 --dyn-min-batch-size 25 --dyn-max-batch-size 200 --dyn-min-batch-incl 2 \
                                 --num-random-init 500 --min-dataset-size 1000 --num-repeats 3 \
                                 --min-inclusion-rate 0.01 --tuning-interval 4 --store-feather --slurm-user "???@pik-potsdam.de" --slurm-hours 23
-                                
+
 # --------------------------------------------------
 # pre-compute rankings (static models and batches)
 uv run --extra experiments -m simulation.rank SLURM --mode-rank ALL \
                               --models trans-rank --models svm --models lightgbm --models sgd --models logreg \
-                              --num-random-init 500 --min-dataset-size 1000 --min-inclusion-rate 0.01 \
+                              --num-random-init 500 --no-grow-init-batch --min-dataset-size 1000 --min-inclusion-rate 0.01 \
                               --batch-strategy STATIC --stat-batch-size 50 --num-repeats 3 \
                               --max-vocab 7000 --max-ngram 1 --min-df 3 \
                               --predict-on-all --no-use-fine-tuning --train-proportion 1.0 \
