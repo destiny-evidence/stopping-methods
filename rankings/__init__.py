@@ -71,7 +71,7 @@ def it_rankers(models: list[str], use_fine_tuning: bool = False) -> Generator[Ab
 
     if TransRanker.name in models:
         for pre_trained_model in DEFAULT_MODELS:
-            yield TransRanker(tuning=False, models=pre_trained_model)
+            yield TransRanker(tuning=False, models=[pre_trained_model])
 
 
 # import rankings

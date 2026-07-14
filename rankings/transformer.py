@@ -152,6 +152,7 @@ class TransRanker(AbstractRanker):
         self.tuning_trials = tuning_trials
         self.test_split = test_split
 
+
     @classmethod
     def ensure_offline_models(cls, models: list[str] | None = None):
         from huggingface_hub import snapshot_download
@@ -183,7 +184,7 @@ class TransRanker(AbstractRanker):
             'save_strategy': 'no',
             'use_class_weights': 1,
             'class_weights': weights,
-            'model_name': self.DEFAULT_MODELS[0],
+            'model_name': self.models[0],
             'learning_rate': 1e-4,
             'per_device_train_batch_size': 4,
             'per_device_eval_batch_size': 12,
