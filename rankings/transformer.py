@@ -71,7 +71,7 @@ def evaluate_trainer(predictions: PredictionOutput):
 class CustomTrainingArguments(TrainingArguments):
     use_class_weights: bool | int = field(default=False, metadata={'help': 'Whether to use class weights in loss function'})
     class_weights: list[float] | np.ndarray | None = field(default=None, metadata={'help': 'The weights for each class to be passed to the loss function'})
-    model_name: str | None = field(default=DEFAULT_MODELS[0], metadata={'help': 'Name of the huggingface model'})
+    model_name: str = field(default=DEFAULT_MODELS[0], metadata={'help': 'Name of the huggingface model'})
 
 
 class CustomTrainer(Trainer):
@@ -114,7 +114,7 @@ def tokenize(texts: list[str], labels: np.ndarray, model: str, cache_dir: Path |
         {
             'text': texts,
             'labels': labels,
-        }
+        },
     )
 
     tokenizer = AutoTokenizer.from_pretrained(model, model_max_length=512, cache_dir=cache_dir)
@@ -144,14 +144,25 @@ class TransRanker(AbstractRanker):
         **kwargs: dict[str, Any],
     ):
         super().__init__(train_mode, **kwargs)
+        if not self.tuning and len(models or []) != 1:
+            raise AssertionError('Without HP tuning, you need to provide exactly one pre-trained model')
+
         self.min_batch_size = min_batch_size
         self.max_batch_size = max_batch_size
         self.models = models or self.DEFAULT_MODELS
-        self.model_params = model_params or {}
+
+        self.model_params = {}
+        if self.models:
+            self.model_params |= {
+                'model_name': self.models[0],
+            }
+        if model_params:
+            self.model_params |= model_params
+
         self.model: CustomTrainer | None = None
         self.tuning_trials = tuning_trials
         self.test_split = test_split
-
+        logger.info(f'Initialised TransRanker with models {self.models}')
 
     @classmethod
     def ensure_offline_models(cls, models: list[str] | None = None):
@@ -173,10 +184,12 @@ class TransRanker(AbstractRanker):
         key = f'{self.name}-{self.train_mode}-{self.dataset.batch_strategy}'
         if self.tuning:
             key = f'{key}-tuned'
+        else:
+            key = f'{key}-{self.models[0]}'
         return f'{key}-{self.get_hash()}'
 
     def args(
-        self, trial: Trial | None = None, weights: list[float] | torch.Tensor | None = None, best_params: dict[str, Any] | None = None
+        self, trial: Trial | None = None, weights: list[float] | torch.Tensor | None = None, best_params: dict[str, Any] | None = None,
     ) -> CustomTrainingArguments:
         base = {
             'output_dir': str(settings.model_data_path),
@@ -272,7 +285,7 @@ class TransRanker(AbstractRanker):
     def _train(self, args: CustomTrainingArguments, dataset: Dataset):
         logger.debug(f'Training fresh transformer model using "{args.model_name}"')
         model = AutoModelForSequenceClassification.from_pretrained(
-            args.model_name, cache_dir=settings.model_data_path, num_labels=2, ignore_mismatched_sizes=True
+            args.model_name, cache_dir=settings.model_data_path, num_labels=2, ignore_mismatched_sizes=True,
         )
 
         self.model = CustomTrainer(model=model, args=args, train_dataset=dataset)
@@ -313,15 +326,15 @@ class TransRanker(AbstractRanker):
             return base | {'hyperparams': self.model_params}
         return base | {
             'hyperparams': self.model_params
-            | {
-                'class_weights': self.model.args.class_weights.cpu().tolist(),
-                'use_class_weights': self.model.args.use_class_weights,
-                'learning_rate': self.model.args.learning_rate,
-                'per_device_train_batch_size': self.model.args.per_device_train_batch_size,
-                'per_device_eval_batch_size': self.model.args.per_device_eval_batch_size,
-                'num_train_epochs': self.model.args.num_train_epochs,
-                'weight_decay': self.model.args.weight_decay,
-                'model_name': self.model.args.model_name,
-                'optim': self.model.args.optim,
-            }
+                           | {
+                               'class_weights': self.model.args.class_weights.cpu().tolist(),
+                               'use_class_weights': self.model.args.use_class_weights,
+                               'learning_rate': self.model.args.learning_rate,
+                               'per_device_train_batch_size': self.model.args.per_device_train_batch_size,
+                               'per_device_eval_batch_size': self.model.args.per_device_eval_batch_size,
+                               'num_train_epochs': self.model.args.num_train_epochs,
+                               'weight_decay': self.model.args.weight_decay,
+                               'model_name': self.model.args.model_name,
+                               'optim': self.model.args.optim,
+                           }
         }
