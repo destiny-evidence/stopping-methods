@@ -3,7 +3,7 @@ from typing import Type, Generator
 
 from shared.ranking import AbstractRanker, TrainMode
 from .simple import SGDRanker, RegressionRanker, SVMRanker, LightGBMRanker
-from .transformer import TransRanker
+from .transformer import TransRanker, DEFAULT_MODELS
 
 logger = logging.getLogger('ranker')
 
@@ -27,7 +27,7 @@ def assert_models(models: list[str]) -> list[str]:
 
 
 def it_tuning_rankers(models: list[str] | None = None) -> Generator[AbstractRanker, None, None]:
-    for model in (models or MODELS.keys()):
+    for model in models or MODELS.keys():
         yield MODELS[model](tuning=True, train_mode=TrainMode.RESET)
 
 
@@ -68,6 +68,11 @@ def it_rankers(models: list[str], use_fine_tuning: bool = False) -> Generator[Ab
         if use_fine_tuning:
             logger.info('Using SVM model with tuning...')
             yield LightGBMRanker(tuning=True)
+
+    if TransRanker.name in models:
+        for pre_trained_model in DEFAULT_MODELS:
+            yield TransRanker(tuning=False, models=[pre_trained_model])
+
 
 # import rankings
 # def it_rankers() -> Generator[AbstractRanker, None, None]:

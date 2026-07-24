@@ -11,16 +11,13 @@ from shared.dataset import Dataset
 
 
 class TrainMode(str, Enum):
-    RESET = "reset"
-    FULL = "full"
-    NEW = "new"
+    RESET = 'reset'
+    FULL = 'full'
+    NEW = 'new'
 
 
 class AbstractRanker(ABC):
-    def __init__(self,
-                 train_mode: TrainMode,
-                 tuning: bool = True,
-                 **kwargs: dict[str, Any]):
+    def __init__(self, train_mode: TrainMode, tuning: bool = True, **kwargs: dict[str, Any]):
         """
 
         :param dataset:
@@ -89,7 +86,7 @@ class AbstractRanker(ABC):
                 'initial_holdout_idxs': self.dataset.initial_holdout_idxs,
                 'grow_init_batch': self.dataset.grow_init_batch,
             },
-            'model': self._get_params(preview=preview)
+            'model': self._get_params(preview=preview),
         }
 
     def get_params(self, preview: bool = True) -> dict[str, Any]:

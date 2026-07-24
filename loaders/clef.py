@@ -67,22 +67,19 @@ def read_file(file_path: Path, key: str) -> Dataset:
     with open(file_path, 'r') as f:
         records = [json.loads(line) for line in f]
         records = [
-            rec for rec in records
-            if (rec.get('label_abs') == 0 or rec.get('label_abs') == 1)
-               and rec.get('abstract') is not None
-               and len(rec.get('abstract')) > 0
+            rec
+            for rec in records
+            if (rec.get('label_abs') == 0 or rec.get('label_abs') == 1) and rec.get('abstract') is not None and len(rec.get('abstract')) > 0
         ]
         return Dataset(
-            key=key,
-            labels=[int(rec['label_abs']) for rec in records],
-            texts=[(rec['title'] or '') + ' ' + (rec['abstract'] or '') for rec in records]
+            key=key, labels=[int(rec['label_abs']) for rec in records], texts=[(rec['title'] or '') + ' ' + (rec['abstract'] or '') for rec in records]
         )
 
 
 def read_clef_dataset(key: str) -> Dataset:
     base = CLEFCollection.BASE
     base_dir = settings.raw_data_path / base / 'datasets'
-    base_name = key[len(base) + 1:]
+    base_name = key[len(base) + 1 :]
     file_path = base_dir / f'{base_name}.jsonl'
     if not file_path.exists():
         raise AssertionError(f'Files for {key} not valid: {file_path}')
@@ -106,8 +103,7 @@ def consolidate_files():
                         buffer.append(df)
             if len(buffer) > 0:
                 (
-                    pd
-                    .concat(buffer)
+                    pd.concat(buffer)
                     .groupby(['topic', 'study'])
                     .max()
                     .reset_index()
@@ -117,7 +113,7 @@ def consolidate_files():
 
 
 if __name__ == '__main__':
-    print("In module products __package__, __name__ ==", __package__, __name__)
+    print('In module products __package__, __name__ ==', __package__, __name__)
     __package__ = 'loaders.clef'
 
     if False:

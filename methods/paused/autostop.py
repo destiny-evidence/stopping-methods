@@ -33,14 +33,14 @@ class AutoStop(Method[Scores, None, None, None]):
 
     @classmethod
     def compute(
-            cls,
-            *args,
-            n_total: int,
-            labels: Labels,
-            scores: Scores,
-            recall_target: float = 0.95,
-            stopping_condition: StoppingCondition = StoppingCondition.loose,
-            **kwargs,
+        cls,
+        *args,
+        n_total: int,
+        labels: Labels,
+        scores: Scores,
+        recall_target: float = 0.95,
+        stopping_condition: StoppingCondition = StoppingCondition.loose,
+        **kwargs,
     ) -> LogEntry:
         """
         Reference implementation:
@@ -85,7 +85,7 @@ class AutoStop(Method[Scores, None, None, None]):
 
             if stopping_condition is StoppingCondition.strict_v1:
                 temp = np.tile(probs_1o, (n_seen, 1))
-                part1 = 1.0 / probs_1o ** 2 - 1.0 / probs_1o
+                part1 = 1.0 / probs_1o**2 - 1.0 / probs_1o
                 part2 = 1.0 / (temp * temp.T) - 1.0 / probs_2o
                 np.fill_diagonal(part2, 0.0)
 

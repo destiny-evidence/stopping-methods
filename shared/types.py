@@ -17,5 +17,4 @@ type FloatList = list[float] | Scores | pd.Series
 type Indices = list[int] | Labels | pd.Series
 type Mask = list[bool] | Sampling | pd.Series
 
-__all__ = ['IntList', 'FloatList', 'StrList', 'Mask', 'Indices',
-           'BatchBounds', 'Bounds', 'Scores', 'Labels', 'Sampling', 'BinaryScores']
+__all__ = ['IntList', 'FloatList', 'StrList', 'Mask', 'Indices', 'BatchBounds', 'Bounds', 'Scores', 'Labels', 'Sampling', 'BinaryScores']

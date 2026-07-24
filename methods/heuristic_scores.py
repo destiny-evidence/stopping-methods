@@ -23,17 +23,17 @@ class HeuristicScores(Method[Scores, None, None, None]):
 
     @classmethod
     def compute(
-            cls,
-            n_total: int,
-            labels: Labels,
-            scores: Scores,
-            batch_size: int = 1000,
-            threshold: float = 0.1,
-            is_prioritised: None = None,
-            full_labels: None = None,
-            bounds: None = None,
-            recall_target: float = 0.95,
-            inclusion_threshold: float = 0.5,
+        cls,
+        n_total: int,
+        labels: Labels,
+        scores: Scores,
+        batch_size: int = 1000,
+        threshold: float = 0.1,
+        is_prioritised: None = None,
+        full_labels: None = None,
+        bounds: None = None,
+        recall_target: float = 0.95,
+        inclusion_threshold: float = 0.5,
     ) -> LogEntry:
         """
         Use model scores to estimate the number of included documents and then

@@ -34,16 +34,16 @@ class CurveFitting(Method[None, None, None, None]):
 
     @classmethod
     def compute(
-            cls,
-            n_total: int,
-            labels: Labels,
-            recall_target: float = .07,
-            confidence_level: float = 0.95,
-            n_windows: int = 10,
-            is_prioritised: None = None,
-            full_labels: None = None,
-            scores: None = None,
-            bounds: None = None,
+        cls,
+        n_total: int,
+        labels: Labels,
+        recall_target: float = 0.07,
+        confidence_level: float = 0.95,
+        n_windows: int = 10,
+        is_prioritised: None = None,
+        full_labels: None = None,
+        scores: None = None,
+        bounds: None = None,
     ) -> LogEntry:
         """
         Implements stopping rule that fits a curve to the cumulative number of included records.
@@ -77,23 +77,20 @@ class CurveFitting(Method[None, None, None, None]):
             )
 
         window_size = int(len(labels) / n_windows)
-        windows = [(window_size * wi, window_size * (wi + 1))
-                   for wi in range(n_windows - 1)]
+        windows = [(window_size * wi, window_size * (wi + 1)) for wi in range(n_windows - 1)]
 
         # x, y are points that will be used to fit curve
         # x-values are midpoints between start and end of windows
-        x = np.array([round(np.mean([w_s, w_e]))
-                      for (w_s, w_e) in windows])
+        x = np.array([round(np.mean([w_s, w_e])) for (w_s, w_e) in windows])
 
         # y-values are the rate at which relevant documents occur in the window
         # ex: rate 0.1 = 0.1 rel docs per doc, or 1 in 10 docs are relevant
-        y = np.array([np.sum(labels[w_s:w_e]) / window_size
-                      for (w_s, w_e) in windows])
+        y = np.array([np.sum(labels[w_s:w_e]) / window_size for (w_s, w_e) in windows])
 
         # try to fit curve
         try:
             with warnings.catch_warnings():
-                warnings.simplefilter("ignore", category=OptimizeWarning)
+                warnings.simplefilter('ignore', category=OptimizeWarning)
 
                 p0 = [0.1, 0.001, 1]  # initialise curve parameters
                 opt, pcov = curve_fit(model_func, x, y, p0)  # fit curve
@@ -114,8 +111,7 @@ class CurveFitting(Method[None, None, None, None]):
 
             return LogEntry(
                 KEY=cls.KEY,
-                safe_to_stop=(num_incl_predicted is not None and
-                              num_incl_seen >= (recall_target * num_incl_predicted)),
+                safe_to_stop=(num_incl_predicted is not None and num_incl_seen >= (recall_target * num_incl_predicted)),
                 recall_target=recall_target,
                 confidence_level=confidence_level,
                 n_windows=n_windows,

@@ -37,21 +37,21 @@ class SCAL(Method[Scores, None, None, None]):
     @classmethod
     def parameter_options(cls) -> Generator[MethodParams, None, None]:
         for rt in RECALL_TARGETS:
-            for b in [0.9, 1.0, 1.05, 1.1,1.2,1.3]:
+            for b in [0.9, 1.0, 1.05, 1.1, 1.2, 1.3]:
                 for s in [0.5, 0.8, 0.9]:
                     yield MethodParams(sample_size=s, recall_target=rt, bias=b)
 
     @classmethod
     def compute(
-            cls,
-            *args,
-            n_total: int,
-            labels: Labels,
-            scores: Scores,
-            recall_target: float = 0.95,
-            sample_size: float = 0.8,
-            bias: float = 1.05,
-            **kwargs,
+        cls,
+        *args,
+        n_total: int,
+        labels: Labels,
+        scores: Scores,
+        recall_target: float = 0.95,
+        sample_size: float = 0.8,
+        bias: float = 1.05,
+        **kwargs,
     ) -> LogEntry:
         """
         Implements S-CAL

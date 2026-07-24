@@ -49,42 +49,30 @@ class GenericPairedRISCollection(AbstractCollection):
             yield Dataset(
                 key=f'{self.BASE}-{pair}',
                 labels=[rec.label_abs for rec in included + excluded],
-                texts=[(rec.title or '') + ' ' + (rec.abstract or '') for rec in included + excluded]
+                texts=[(rec.title or '') + ' ' + (rec.abstract or '') for rec in included + excluded],
             )
 
 
 def read_paired_ris_dataset(key: str) -> Dataset:
     base = GenericPairedRISCollection.BASE
     base_dir = settings.raw_data_path / base
-    base_name = key[len(base) + 1:]
+    base_name = key[len(base) + 1 :]
     file_incl = base_dir / f'{base_name}_INCLUDES.ris'
     file_excl = base_dir / f'{base_name}_EXCLUDES.ris'
     if not (file_incl.exists() and file_excl.exists()):
-        raise AssertionError(f'Files for {key} not valid: \n'
-                             f'{file_incl}\n'
-                             f'{file_excl}')
+        raise AssertionError(f'Files for {key} not valid: \n{file_incl}\n{file_excl}')
 
     included = list(read_ris_file(file_incl, label_abs=True))
     excluded = list(read_ris_file(file_excl, label_abs=False, idx_offset=len(included)))
 
-    records = [
-        rec
-        for rec in included + excluded
-        if rec.abstract is not None and len(rec.abstract) > 0
-    ]
+    records = [rec for rec in included + excluded if rec.abstract is not None and len(rec.abstract) > 0]
 
-    return Dataset(
-        key=key,
-        labels=[rec.label_abs for rec in records],
-        texts=[(rec.title or '') + ' ' + (rec.abstract or '') for rec in records]
-    )
+    return Dataset(key=key, labels=[rec.label_abs for rec in records], texts=[(rec.title or '') + ' ' + (rec.abstract or '') for rec in records])
 
 
-def read_ris_file(filepath: Path,
-                  label_abs: bool,
-                  label_ft: bool | None = None,
-                  idx_offset: int = 0,
-                  extra_fields: dict[str, str] | None = None) -> Generator[Record, None, None]:
+def read_ris_file(
+    filepath: Path, label_abs: bool, label_ft: bool | None = None, idx_offset: int = 0, extra_fields: dict[str, str] | None = None
+) -> Generator[Record, None, None]:
     mapping = deepcopy(rispy.TAG_KEY_MAPPING)
     for src, tgt in (extra_fields or {}).items():
         mapping[src] = tgt  # e.g. U1->pmid, C8->OAid

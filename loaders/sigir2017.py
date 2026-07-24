@@ -64,16 +64,13 @@ class SIGIRCollection(AbstractCollection):
             logger.debug(f'  > {name} @ {file_name}')
 
             if file_name.exists():
-                logger.info(f'Skipping {name} which already exists in folder {self.folder_datasets }')
+                logger.info(f'Skipping {name} which already exists in folder {self.folder_datasets}')
                 continue
 
             try:
                 with open(file_name, 'w') as f_out:
                     for batch in batched(items.to_dict(orient='records'), batch_size=50):
-                        batch_ids = [
-                            {'pubmed_id': rec['url'][35:]}
-                            for rec in batch
-                        ]
+                        batch_ids = [{'pubmed_id': rec['url'][35:]} for rec in batch]
                         lookup = {rec['url'][35:]: rec for rec in batch}
                         for record in fetch(ids=batch_ids):
                             f_out.write(json.dumps(record | lookup[record['pubmed_id']]) + '\n')
@@ -87,22 +84,19 @@ def read_file(file_path: Path, key: str) -> Dataset:
     with open(file_path, 'r') as f:
         records = [json.loads(line) for line in f]
         records = [
-            rec for rec in records
-            if (rec.get('included') == True or rec.get('included') == False)
-               and rec.get('abstract') is not None
-               and len(rec.get('abstract')) > 0
+            rec
+            for rec in records
+            if (rec.get('included') == True or rec.get('included') == False) and rec.get('abstract') is not None and len(rec.get('abstract')) > 0
         ]
         return Dataset(
-            key=key,
-            labels=[int(rec['included']) for rec in records],
-            texts=[(rec['title'] or '') + ' ' + (rec['abstract'] or '') for rec in records]
+            key=key, labels=[int(rec['included']) for rec in records], texts=[(rec['title'] or '') + ' ' + (rec['abstract'] or '') for rec in records]
         )
 
 
 def read_sigir_dataset(key: str) -> Dataset:
     base = SIGIRCollection.BASE
     base_dir = settings.raw_data_path / 'datasets' / base
-    base_name = key[len(base) + 1:]
+    base_name = key[len(base) + 1 :]
     file_path = base_dir / f'{base_name}.jsonl'
     if not file_path.exists():
         raise AssertionError(f'Files for {key} not valid: {file_path}')
@@ -111,6 +105,6 @@ def read_sigir_dataset(key: str) -> Dataset:
 
 
 if __name__ == '__main__':
-    print("In module products __package__, __name__ ==", __package__, __name__)
+    print('In module products __package__, __name__ ==', __package__, __name__)
     __package__ = 'loaders.sigir2017'
     SIGIRCollection().fetch_collection()

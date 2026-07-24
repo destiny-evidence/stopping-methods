@@ -1,5 +1,3 @@
-
-
 from typing import Generator, TypedDict
 
 import numpy as np
@@ -8,10 +6,12 @@ import pandas as pd
 from shared.method import Method, AbstractLogEntry, RECALL_TARGETS
 from shared.types import IntList, FloatList
 
+
 class HeuristicScoresParamSet(TypedDict):
     bound: str
     recall_target: float
     min_read_docs: int
+
 
 class HeuristicScoresLogEntry(AbstractLogEntry):
     KEY: str = 'CHAO'
@@ -29,13 +29,15 @@ class Chao(Method):
             yield HeuristicScoresParamSet(recall_target=recall_target, inclusion_threshold=0.5)
 
     @classmethod
-    def compute(cls,
-                dataset_size: int,
-                list_of_labels: IntList,
-                is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
-                list_of_model_scores: FloatList | None = None,
-                recall_target: float = 0.95,
-                inclusion_threshold: float = 0.5) -> HeuristicScoresLogEntry:
+    def compute(
+        cls,
+        dataset_size: int,
+        list_of_labels: IntList,
+        is_prioritised: list[int] | list[bool] | pd.Series | np.ndarray | None = None,
+        list_of_model_scores: FloatList | None = None,
+        recall_target: float = 0.95,
+        inclusion_threshold: float = 0.5,
+    ) -> HeuristicScoresLogEntry:
         """
         Using the estimate N_hat푁 and the corresponding 95% CI for N, we can determine if we can terminate
         the TAR procedure. The user can specify a recall target, such as 95% recall (note that the 95% recall
@@ -54,7 +56,7 @@ class Chao(Method):
         n_seen = len(y_true)
         n_incl = y_true.sum()
 
-        if estimate > len(learner.env.dataset) or estimate == float("nan"):
+        if estimate > len(learner.env.dataset) or estimate == float('nan'):
             self.estimate = None
         else:
             self.estimate = estimate

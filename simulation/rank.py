@@ -21,6 +21,7 @@ app = typer.Typer()
 class RankingProcess(str, Enum):
     ALL = 'ALL'
     BEST = 'BEST'
+    DEFAULTS = 'DEFAULTS'
 
 
 class ExecutionMode(str, Enum):
@@ -42,38 +43,38 @@ def prepare_nltk():
 
 @app.command()
 def produce_rankings(
-        mode_exec: ExecutionMode,
-        mode_rank: RankingProcess = RankingProcess.BEST,
-        dataset_key: Annotated[str | None, typer.Option(help='if mode==single: the key for the dataset')] = None,
-        dataset_repeat: Annotated[int | None, typer.Option(help='if mode==single: the repeat for the dataset')] = None,
-        models: Annotated[list[str] | None, typer.Option(help='Models to use')] = None,
-        num_repeats: int = 3,
-        min_dataset_size: int = 500,
-        min_inclusion_rate: float = 0.01,
-        num_random_init: int = 100,
-        batch_strategy: BatchStrategy = BatchStrategy.DYNAMIC,
-        stat_batch_size: int = 100,
-        dyn_min_batch_incl: int = 5,
-        dyn_min_batch_size: int = 100,
-        dyn_growth_rate: float = 0.1,
-        dyn_max_batch_size: int = 600,
-        inject_random_batch_every: int = 0,
-        train_proportion: float = 0.85,
-        max_vocab: int = 7000,
-        max_ngram: int = 1,
-        min_df: int = 3,
-        tuning_interval: int = 250,
-        random_state: int | None = None,
-        store_feather: bool = True,
-        store_csv: bool = False,
-        initial_holdout: int = 0,
-        grow_init_batch: bool = True,
-        use_fine_tuning: bool = False,
-        predict_on_all: bool = False,
-        init_nltk: bool = False,
-        slurm_gpu: bool = False,
-        slurm_hours: int = 20,
-        slurm_user: Annotated[str | None, typer.Option(help='email address to notify when done')] = None,
+    mode_exec: ExecutionMode,
+    mode_rank: RankingProcess = RankingProcess.BEST,
+    dataset_key: Annotated[str | None, typer.Option(help='if mode==single: the key for the dataset')] = None,
+    dataset_repeat: Annotated[int | None, typer.Option(help='if mode==single: the repeat for the dataset')] = None,
+    models: Annotated[list[str] | None, typer.Option(help='Models to use')] = None,
+    num_repeats: int = 3,
+    min_dataset_size: int = 500,
+    min_inclusion_rate: float = 0.01,
+    num_random_init: int = 100,
+    batch_strategy: BatchStrategy = BatchStrategy.DYNAMIC,
+    stat_batch_size: int = 100,
+    dyn_min_batch_incl: int = 5,
+    dyn_min_batch_size: int = 100,
+    dyn_growth_rate: float = 0.1,
+    dyn_max_batch_size: int = 600,
+    inject_random_batch_every: int = 0,
+    train_proportion: float = 0.85,
+    max_vocab: int = 7000,
+    max_ngram: int = 1,
+    min_df: int = 3,
+    tuning_interval: int = 250,
+    random_state: int | None = None,
+    store_feather: bool = True,
+    store_csv: bool = False,
+    initial_holdout: int = 0,
+    grow_init_batch: bool = True,
+    use_fine_tuning: bool = False,
+    predict_on_all: bool = False,
+    init_nltk: bool = False,
+    slurm_gpu: bool = False,
+    slurm_hours: int = 20,
+    slurm_user: Annotated[str | None, typer.Option(help='email address to notify when done')] = None,
 ):
     """
     This is the main procedure for pre-computing rankings.
@@ -147,24 +148,25 @@ def produce_rankings(
 
         target_key = f'{dataset.KEY}-{initial_holdout}-{num_random_init}-{repeat}-best'
         logger.info(f'Running ranker {target_key}...')
-        logger.debug(f'Checking for {settings.ranking_data_path / f'{target_key}.json'}')
+        logger.debug(f'Checking for {settings.ranking_data_path / f"{target_key}.json"}')
         if (settings.ranking_data_path / f'{target_key}.json').exists():
             logger.info(f' > Skipping {target_key}; simulation already exists')
             return
 
-        infos = bm_ranking(dataset=dataset,
-                           models=models,
-                           repeat=repeat,
-                           train_proportion=train_proportion,
-                           tuning_interval=tuning_interval,
-                           random_state=random_state)
+        infos = bm_ranking(
+            dataset=dataset, models=models, repeat=repeat, train_proportion=train_proportion, tuning_interval=tuning_interval, random_state=random_state
+        )
 
         # persist to disk and reset
         logger.info(f'Persisting to disk for {target_key}...')
-        json_dumps(settings.ranking_data_path / f'{target_key}.json', {
-            'repeat': repeat,
-            'batches': infos,
-        }, indent=2)
+        json_dumps(
+            settings.ranking_data_path / f'{target_key}.json',
+            {
+                'repeat': repeat,
+                'batches': infos,
+            },
+            indent=2,
+        )
 
         if store_feather:
             dataset.store(settings.ranking_data_path / f'{target_key}.feather')
@@ -174,12 +176,21 @@ def produce_rankings(
 
     def rank_using_best(dataset: Dataset):
         logger.info('Rank using best model, initialising dataset...')
-        dataset.init(num_random_init=num_random_init, batch_strategy=batch_strategy,
-                     stat_batch_size=stat_batch_size, dyn_min_batch_size=dyn_min_batch_size,
-                     dyn_max_batch_size=dyn_max_batch_size, inject_random_batch_every=inject_random_batch_every,
-                     dyn_min_batch_incl=dyn_min_batch_incl, dyn_growth_rate=dyn_growth_rate,
-                     initial_holdout=initial_holdout, grow_init_batch=grow_init_batch,
-                     ngram_range=(1, max_ngram), max_features=max_vocab, min_df=min_df)
+        dataset.init(
+            num_random_init=num_random_init,
+            batch_strategy=batch_strategy,
+            stat_batch_size=stat_batch_size,
+            dyn_min_batch_size=dyn_min_batch_size,
+            dyn_max_batch_size=dyn_max_batch_size,
+            inject_random_batch_every=inject_random_batch_every,
+            dyn_min_batch_incl=dyn_min_batch_incl,
+            dyn_growth_rate=dyn_growth_rate,
+            initial_holdout=initial_holdout,
+            grow_init_batch=grow_init_batch,
+            ngram_range=(1, max_ngram),
+            max_features=max_vocab,
+            min_df=min_df,
+        )
 
         if dataset_repeat is not None:
             logger.info(f'Rank using best model, running only repeat {dataset_repeat}')
@@ -193,12 +204,21 @@ def produce_rankings(
 
     def rank_using_all(dataset: Dataset):
         logger.info('Rank using all, initialising dataset...')
-        dataset.init(num_random_init=num_random_init, batch_strategy=batch_strategy,
-                     stat_batch_size=stat_batch_size, dyn_min_batch_size=dyn_min_batch_size,
-                     dyn_max_batch_size=dyn_max_batch_size, inject_random_batch_every=inject_random_batch_every,
-                     dyn_min_batch_incl=dyn_min_batch_incl, dyn_growth_rate=dyn_growth_rate,
-                     initial_holdout=initial_holdout, grow_init_batch=grow_init_batch,
-                     ngram_range=(1, max_ngram), max_features=max_vocab, min_df=min_df)
+        dataset.init(
+            num_random_init=num_random_init,
+            batch_strategy=batch_strategy,
+            stat_batch_size=stat_batch_size,
+            dyn_min_batch_size=dyn_min_batch_size,
+            dyn_max_batch_size=dyn_max_batch_size,
+            inject_random_batch_every=inject_random_batch_every,
+            dyn_min_batch_incl=dyn_min_batch_incl,
+            dyn_growth_rate=dyn_growth_rate,
+            initial_holdout=initial_holdout,
+            grow_init_batch=grow_init_batch,
+            ngram_range=(1, max_ngram),
+            max_features=max_vocab,
+            min_df=min_df,
+        )
 
         logger.info('Rank using all, start loop...')
         for ranker in it_rankers(models=models, use_fine_tuning=use_fine_tuning):
@@ -207,7 +227,7 @@ def produce_rankings(
                 ranker.attach_dataset(dataset)
                 target_key = f'{dataset.KEY}-{initial_holdout}-{repeat}-{ranker.key}'
                 logger.info(f'Running ranker {target_key}...')
-                logger.debug(f'Checking for {settings.ranking_data_path / f'{target_key}.json'}')
+                logger.debug(f'Checking for {settings.ranking_data_path / f"{target_key}.json"}')
                 if (settings.ranking_data_path / f'{target_key}.json').exists():
                     logger.info(f' > Skipping {target_key}; simulation already exists')
                     continue
@@ -220,14 +240,19 @@ def produce_rankings(
                     dataset.prepare_next_batch()
                     ranker.train()
                     predictions = ranker.predict(predict_on_all=predict_on_all)
-                    dataset.register_predictions(scores=predictions)
+                    if predict_on_all:
+                        dataset.register_predictions_full(scores=predictions)
+                    else:
+                        dataset.register_predictions(scores=predictions)
 
                 # persist to disk and reset
                 logger.info(f'Persisting to disk for {target_key}...')
-                ranker.store_info(settings.ranking_data_path / f'{target_key}.json',
-                                  extra={
-                                      'repeat': repeat,
-                                  })
+                ranker.store_info(
+                    settings.ranking_data_path / f'{target_key}.json',
+                    extra={
+                        'repeat': repeat,
+                    },
+                )
                 if store_feather:
                     dataset.store(settings.ranking_data_path / f'{target_key}.feather')
                 if store_csv:
@@ -238,8 +263,7 @@ def produce_rankings(
     def it_filtered_datasets() -> Generator[Dataset, None, None]:
         for _dataset in it_datasets():
             logger.info(f'Running simulation on dataset: {_dataset.KEY}')
-            logger.info(f'  n_incl={_dataset.n_incl}, n_total={_dataset.n_total} '
-                        f'=> {_dataset.n_incl / _dataset.n_total:.2%}')
+            logger.info(f'  n_incl={_dataset.n_incl}, n_total={_dataset.n_total} => {_dataset.n_incl / _dataset.n_total:.2%}')
 
             if _dataset.n_total < min_dataset_size:
                 logger.warning(f'SKIP: Dataset {_dataset.KEY} is too small {_dataset.n_total} < {min_dataset_size}')
@@ -283,6 +307,7 @@ def produce_rankings(
 
     elif mode_exec == ExecutionMode.SLURM:
         from rankings import TransRanker
+
         logger.info(f'Preparing slurm script and submitting job!')
 
         if slurm_user is None:
@@ -310,9 +335,10 @@ def produce_rankings(
             'output': f'{log_path}/%A_%a.out',
             'error': f'{log_path}/%A_%a.err',
             'chdir': os.getcwd(),
-            'array': f'1-{(len(datasets) + 1) * num_repeats}'
+            'array': f'1-{(len(datasets) + 1) * num_repeats}',
         }
         if slurm_gpu:
+            fname = 'simulation/rank.gpu.slurm'
             sbatch_args |= {
                 'gres': 'gpu:1',  # number of GPUs
                 'partition': 'gpu',
@@ -320,6 +346,7 @@ def produce_rankings(
                 'cpus-per-task': 5,
             }
         else:
+            fname = 'simulation/rank.cpu.slurm'
             sbatch_args |= {
                 'cpus-per-task': 12,
                 'partition': 'standard',
@@ -328,7 +355,8 @@ def produce_rankings(
         sbatch = [f'#SBATCH --{key}={value}' for key, value in sbatch_args.items()]
         # Write slurm batch file
         # For information on array jobs, see: https://hpcdocs.hpc.arizona.edu/running_jobs/batch_jobs/array_jobs/
-        with open('simulation/rank.slurm', 'w') as slurm_file:
+
+        with open(fname, 'w') as slurm_file:
             slurm_file.write(f"""#!/bin/bash
 
 {'\n'.join(sbatch)}
@@ -341,7 +369,7 @@ set -e
 set -o xtrace
 
 # Set up python environment
-module load anaconda/2024.10
+module load anaconda
 module load cuda
 source "{venv_path}/bin/activate"
 
@@ -395,7 +423,7 @@ python simulation/rank.py SINGLE \\
                --{'' if use_fine_tuning else 'no-'}use-fine-tuning \\
                --{'' if predict_on_all else 'no-'}predict-on-all 
 """)
-        subprocess.run(['sbatch', 'simulation/rank.slurm'])
+        subprocess.run(['sbatch', fname])
 
 
 if __name__ == '__main__':

@@ -18,14 +18,14 @@ class LogEntry(_LogEntry, MethodParams):
 
 
 def model_func_power(x, a, k):
-    return a * x ** k
+    return a * x**k
 
 
 class PointProcess(Method[None, None, None, None]):
     KEY: str = 'IPP'
 
     @classmethod
-    def parameter_options(cls)  -> Generator[MethodParams, None, None]:
+    def parameter_options(cls) -> Generator[MethodParams, None, None]:
         for nw in NUM_WINDOWS:
             for cl in CONFIDENCE_TARGETS:
                 for tr in RECALL_TARGETS:
@@ -33,16 +33,16 @@ class PointProcess(Method[None, None, None, None]):
 
     @classmethod
     def compute(
-            cls,
-            n_total: int,
-            labels: Labels,
-            n_windows: int = 10,
-            recall_target: float = 0.95,
-            confidence_level: float = 0.95,
-            scores: None = None,
-            is_prioritised: None = None,
-            full_labels: None = None,
-            bounds: None = None,
+        cls,
+        n_total: int,
+        labels: Labels,
+        n_windows: int = 10,
+        recall_target: float = 0.95,
+        confidence_level: float = 0.95,
+        scores: None = None,
+        is_prioritised: None = None,
+        full_labels: None = None,
+        bounds: None = None,
     ) -> LogEntry:
         """
         Implements point process estimation

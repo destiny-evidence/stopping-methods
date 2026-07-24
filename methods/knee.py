@@ -43,23 +43,22 @@ class Knee(Method[None, None, None, None]):
         for window_size in WINDOW_SIZES:
             for th_r in [2, 3, 4, 7]:
                 for th_p in [0.2, 0.3, 0.4]:
-                    yield MethodParams(window_size=window_size, threshold_ratio=th_r, threshold_peak=th_p,
-                                       polyorder=1, smoothing=SmoothingMethod.SAVGOL)
+                    yield MethodParams(window_size=window_size, threshold_ratio=th_r, threshold_peak=th_p, polyorder=1, smoothing=SmoothingMethod.SAVGOL)
 
     @classmethod
     def compute(
-            cls,
-            n_total: int,
-            labels: Labels,
-            window_size: int = 500,
-            smoothing: SmoothingMethod = SmoothingMethod.GAUSS,
-            polyorder: int = 1,
-            threshold_ratio: float = 6.0,
-            threshold_peak: float = 0.3,
-            scores: None = None,
-            is_prioritised: None = None,
-            full_labels: None = None,
-            bounds: None = None,
+        cls,
+        n_total: int,
+        labels: Labels,
+        window_size: int = 500,
+        smoothing: SmoothingMethod = SmoothingMethod.GAUSS,
+        polyorder: int = 1,
+        threshold_ratio: float = 6.0,
+        threshold_peak: float = 0.3,
+        scores: None = None,
+        is_prioritised: None = None,
+        full_labels: None = None,
+        bounds: None = None,
     ) -> LogEntry:
         """
         Detect the so-called knee in the data.
@@ -77,9 +76,19 @@ class Knee(Method[None, None, None, None]):
           3) Compute and test ratio of pre-/post-slopes
         """
         if labels.sum() == 0:
-            return LogEntry(KEY=cls.KEY, safe_to_stop=False, window_size=window_size, polyorder=polyorder,
-                            threshold_ratio=threshold_ratio, threshold_peak=threshold_peak,
-                            slope_ratio=0, smoothing=smoothing, score=None, confidence_level=None, recall_target=None)
+            return LogEntry(
+                KEY=cls.KEY,
+                safe_to_stop=False,
+                window_size=window_size,
+                polyorder=polyorder,
+                threshold_ratio=threshold_ratio,
+                threshold_peak=threshold_peak,
+                slope_ratio=0,
+                smoothing=smoothing,
+                score=None,
+                confidence_level=None,
+                recall_target=None,
+            )
 
         x = np.arange(len(labels))
         x_norm = x / n_total
@@ -103,9 +112,19 @@ class Knee(Method[None, None, None, None]):
         slope_post = 1.0 - curve_smooth_norm[knee]
         # print((len(x) - knee), knee, len(x), slope_pre, slope_post, slope_pre / slope_post)
         if slope_post == 0 or (len(x) - knee) < 50 or ((len(x) - knee) / len(x)) < 0.05 or diff.max() < threshold_peak:
-            return LogEntry(KEY=cls.KEY, safe_to_stop=False, window_size=window_size, polyorder=polyorder,
-                            threshold_ratio=threshold_ratio, threshold_peak=threshold_peak,
-                            slope_ratio=0, smoothing=smoothing, score=None, confidence_level=None, recall_target=None)
+            return LogEntry(
+                KEY=cls.KEY,
+                safe_to_stop=False,
+                window_size=window_size,
+                polyorder=polyorder,
+                threshold_ratio=threshold_ratio,
+                threshold_peak=threshold_peak,
+                slope_ratio=0,
+                smoothing=smoothing,
+                score=None,
+                confidence_level=None,
+                recall_target=None,
+            )
 
         slope_ratio = slope_pre / slope_post
 
@@ -136,18 +155,23 @@ class Knee(Method[None, None, None, None]):
             ax2.text(0, 0.9, f'{curve_smooth_norm[knee]:.1f} -> {slope_ratio:.2f}')
             ax2.plot((slope_ratio > threshold_ratio).astype(int), label='stop')
             fig.legend(loc='outside upper right')
-            fig.suptitle(f'x_norm.max()={x_norm.max():.2f} '
-                         f'// window_size={window_size} '
-                         f'// n_labels={len(labels):,}',
-                         fontsize=12)
+            fig.suptitle(f'x_norm.max()={x_norm.max():.2f} // window_size={window_size} // n_labels={len(labels):,}', fontsize=12)
             fig.tight_layout()
             fig.show()
 
-        return LogEntry(KEY=cls.KEY, safe_to_stop=slope_ratio > threshold_ratio,
-                        window_size=window_size, polyorder=polyorder,
-                        threshold_ratio=threshold_ratio, threshold_peak=threshold_peak,
-                        slope_ratio=slope_ratio, smoothing=smoothing,
-                        score=slope_ratio, confidence_level=None, recall_target=None)
+        return LogEntry(
+            KEY=cls.KEY,
+            safe_to_stop=slope_ratio > threshold_ratio,
+            window_size=window_size,
+            polyorder=polyorder,
+            threshold_ratio=threshold_ratio,
+            threshold_peak=threshold_peak,
+            slope_ratio=slope_ratio,
+            smoothing=smoothing,
+            score=slope_ratio,
+            confidence_level=None,
+            recall_target=None,
+        )
 
 
 if __name__ == '__main__':
@@ -163,8 +187,7 @@ if __name__ == '__main__':
     #                                                   threshold_ratio=5, smoothing=SmoothingMethod.GAUSS), 2)
     # plt.plot([r['slope_ratio'] for r in results])
     # plt.show()
-    params = MethodParams(window_size=500, polyorder=1, threshold_peak=0.3,
-                          threshold_ratio=3, smoothing=SmoothingMethod.SAVGOL)
+    params = MethodParams(window_size=500, polyorder=1, threshold_peak=0.3, threshold_ratio=3, smoothing=SmoothingMethod.SAVGOL)
     dataset, results = test_method(Knee, params, 5)
     plt.plot(np.arange(len(results)) / len(results) * dataset.n_total, [r['slope_ratio'] for r in results])
     plt.show()

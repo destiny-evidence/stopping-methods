@@ -24,15 +24,15 @@ class BatchPrecision(Method[None, None, None, None]):
 
     @classmethod
     def compute(
-            cls,
-            n_total: int,
-            labels: Labels,
-            batch_size: int = 1000,
-            threshold: float = 0.1,
-            scores: None = None,
-            is_prioritised: None = None,
-            full_labels: None = None,
-            bounds: None = None,
+        cls,
+        n_total: int,
+        labels: Labels,
+        batch_size: int = 1000,
+        threshold: float = 0.1,
+        scores: None = None,
+        is_prioritised: None = None,
+        full_labels: None = None,
+        bounds: None = None,
     ) -> LogEntry:
         """
         This is a stopping method based on tracking precision in the last batch_size records

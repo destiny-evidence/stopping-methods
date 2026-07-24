@@ -25,15 +25,15 @@ class QuantCI(Method[Scores, None, None, None]):
 
     @classmethod
     def compute(
-            cls,
-            n_total: int,
-            labels: Labels,
-            scores: Scores,
-            recall_target: float = 0.9,
-            nstd: float = 0,
-            is_prioritised: None = None,
-            full_labels: None = None,
-            bounds: None = None,
+        cls,
+        n_total: int,
+        labels: Labels,
+        scores: Scores,
+        recall_target: float = 0.9,
+        nstd: float = 0,
+        is_prioritised: None = None,
+        full_labels: None = None,
+        bounds: None = None,
     ) -> LogEntry:
         """
         Implements QuantCI
@@ -50,7 +50,7 @@ class QuantCI(Method[Scores, None, None, None]):
         # mask nans and infs in scores
         mask = np.isfinite(scores_all)
         scores = scores_all[mask]
-        labels = labels[mask[:len(labels)]]
+        labels = labels[mask[: len(labels)]]
 
         # return early if not enough labels are left
         if len(labels) < 50:  # FIXME: Where does the 50 come from?
@@ -66,8 +66,8 @@ class QuantCI(Method[Scores, None, None, None]):
             )
 
         # calculate probability sums
-        known_ps = scores[:len(labels)].sum()
-        unknown_ps = scores[len(labels):].sum()
+        known_ps = scores[: len(labels)].sum()
+        unknown_ps = scores[len(labels) :].sum()
 
         est_recall = known_ps / (known_ps + unknown_ps) if (known_ps + unknown_ps) > 0 else 0
 
@@ -86,9 +86,8 @@ class QuantCI(Method[Scores, None, None, None]):
 
         prod = scores * (1 - scores)
         all_var = prod.sum()
-        unknown_var = prod[len(labels):].sum()
-        est_var = ((known_ps ** 2 / (known_ps + unknown_ps) ** 4 * all_var) +
-                   (1 / (known_ps + unknown_ps) ** 2 * (all_var - unknown_var)))
+        unknown_var = prod[len(labels) :].sum()
+        est_var = (known_ps**2 / (known_ps + unknown_ps) ** 4 * all_var) + (1 / (known_ps + unknown_ps) ** 2 * (all_var - unknown_var))
         safe_to_stop = (est_recall - nstd * np.sqrt(est_var)) >= recall_target
 
         return LogEntry(
@@ -119,7 +118,7 @@ if __name__ == '__main__':
     est_recalls = np.array([res['est_recall'] for res in results])
 
     fig, ax = plots(dataset, results, params)
-    logger.debug(f'estimated recall: {[res['est_recall'] for res in results]}')
+    logger.debug(f'estimated recall: {[res["est_recall"] for res in results]}')
     ax2 = ax.twinx()
     ax2.set_ylim([0, 1])
     ax.plot(np.arange(len(results)) * bs, est_recalls * dataset.n_incl, label='est_recall*n_incl')
